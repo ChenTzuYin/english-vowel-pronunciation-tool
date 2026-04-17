@@ -113,18 +113,19 @@ if audio_info:
                     "timestamp": st.session_state.get('last_rec_time', 'N/A')
                 }
                 
+
+                st.download_button(
+                    label="🎶下載我的音檔",
+                    data=audio_info['bytes'],
+                    file_name="my_pronunciation.wav",
+                    mime="audio/wav"
+                )
                 st.download_button(
                     label="💾 下載分析結果 (JSON)",
                     data=json.dumps(result_data),
                     file_name="vowel_analysis.json",
                     mime="application/json"
                 )
-                st.download_button(
-                    label="下載我的音檔",
-                    data=audio_info['bytes'],
-                    file_name="my_pronunciation.wav",
-                    mime="audio/wav"
-                )    
             else:
                 st.warning("偵測到的共振峰不足，請試著發音更清楚或錄久一點。")
                 
