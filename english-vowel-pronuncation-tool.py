@@ -76,8 +76,14 @@ audio_info = mic_recorder(
 
 # 處理錄音結果
 if audio_info:
-    # 播放錄好的聲音
-    st.audio(audio_info['bytes'])
+    # 播放錄好的聲音 (改用 mp3 格式增加相容性)
+    try:
+        audio = AudioSegment.from_file(io.BytesIO(audio_info['bytes']))
+        mp3_fp = io.BytesIO()
+        audio.export(mp3_fp, format="mp3") # 強制轉為 mp3
+        st.audio(mp3_fp, format="audio/mp3")
+    except:
+        st.audio(audio_info['bytes']) # 失敗則回退到原始格式
     
     with st.spinner("正在分析共振峰，請稍候..."):
         try:
