@@ -7,6 +7,10 @@ import numpy as np
 import scipy.signal
 import json
 
+import librosa.display
+import matplotlib.pyplot as plt
+
+
 # 設定頁面
 st.set_page_config(page_title="英語母音發音輔助工具", layout="centered")
 
