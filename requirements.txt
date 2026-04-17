@@ -4,4 +4,4 @@ librosa
 numpy
 scipy
 pydub
-matplotlib.pyplot
+matplotlib
