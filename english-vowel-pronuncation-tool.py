@@ -85,6 +85,34 @@ if audio_info:
         st.audio(mp3_fp, format="audio/mp3")
     except:
         st.audio(audio_info['bytes']) # 失敗則回退到原始格式
+
+    # 2. 處理音訊資料以便繪圖
+    # 將 bytes 轉為 librosa 可讀取的浮點數陣列
+    audio_bytes = io.BytesIO(audio_info['bytes'])
+    y, sr = librosa.load(audio_bytes)
+
+    # 3. 繪製聲波圖 (Waveform)
+    st.write("#### 聲波分析圖 (Waveform)")
+    fig, ax = plt.subplots(figsize=(10, 3))
+    
+    # 使用 librosa 的繪圖工具
+    librosa.display.waveshow(y, sr=sr, ax=ax, color="#007bff")
+    
+    ax.set_title("Speech Waveform")
+    ax.set_xlabel("Time (seconds)")
+    ax.set_ylabel("Amplitude")
+    
+    # 顯示到 Streamlit
+    st.pyplot(fig)
+
+    # 4. 進階：如果你想要像 Praat 那樣看到強度 (Intensity) 或 頻譜 (Spectrogram)
+    if st.checkbox("顯示頻譜圖 (Spectrogram)"):
+        fig_spec, ax_spec = plt.subplots(figsize=(10, 3))
+        D = librosa.amplitude_to_db(np.abs(librosa.stft(y)), ref=np.max)
+        librosa.display.specshow(D, y_axis='hz', x_axis='time', ax=ax_spec)
+        st.pyplot(fig_spec)
+
+    
     
     with st.spinner("正在分析共振峰，請稍候..."):
         try:
