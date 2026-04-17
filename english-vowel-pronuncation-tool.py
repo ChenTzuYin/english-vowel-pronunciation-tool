@@ -10,38 +10,45 @@ import json
 # 1. 注入自定義 CSS
 st.markdown("""
 <style>
-    /* 定位到 mic_recorder 的按鈕 */
-    button[data-testid="stBaseButton-secondary"] {
-        width: 120px !important;
-        height: 120px !important;
+    /* 強制定位所有在 mic_recorder 內的按鈕 */
+    div[data-testid="stVerticalBlock"] div[data-testid="stHorizontalBlock"] button,
+    .stButton > button, 
+    button {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        width: 150px !important;
+        height: 150px !important;
         border-radius: 50% !important;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px !important;
-        border: none !important;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        font-size: 20px !important;
+        font-weight: bold !important;
+        border: 4px solid white !important;
+        transition: all 0.2s ease !important;
     }
 
-    /* 尚未錄音時：藍色 + 麥克風 (透過文字判定) */
-    button[data-testid="stBaseButton-secondary"]:has(div:contains("開始錄音")) {
-        background-color: #007bff !important; /* 專業藍 */
+    /* 藍色狀態：匹配「開始」字眼 */
+    button:has(div p:contains("開始")), 
+    button:contains("開始") {
+        background-color: #007bff !important;
         color: white !important;
+        box-shadow: 0 0 15px rgba(0,123,255,0.4) !important;
     }
 
-    /* 正在錄音時：紅色 + 停止鍵 + 閃爍動畫 */
-    button[data-testid="stBaseButton-secondary"]:has(div:contains("停止錄音")) {
-        background-color: #ff4b4b !important; /* 警告紅 */
+    /* 紅色閃爍狀態：匹配「停止」字眼 */
+    button:has(div p:contains("停止")), 
+    button:contains("停止") {
+        background-color: #ff4b4b !important;
         color: white !important;
-        animation: pulse-red 1.5s infinite;
+        animation: pulse-red 1.2s infinite !important;
     }
 
-    /* 閃爍動畫定義 */
     @keyframes pulse-red {
-        0% { box-shadow: 0 0 0 0 rgba(255, 75, 75, 0.7); }
-        70% { box-shadow: 0 0 0 20px rgba(255, 75, 75, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(255, 75, 75, 0); }
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 75, 75, 0.7); }
+        50% { transform: scale(1.05); }
+        70% { box-shadow: 0 0 0 25px rgba(255, 75, 75, 0); }
+        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 75, 75, 0); }
     }
 </style>
 """, unsafe_allow_html=True)
