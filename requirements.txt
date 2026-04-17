@@ -1,2 +1,5 @@
 streamlit
-youtube_transcript_api
+streamlit-mic-recorder
+librosa
+numpy
+scipy
