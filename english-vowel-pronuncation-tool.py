@@ -119,6 +119,12 @@ if audio_info:
                     file_name="vowel_analysis.json",
                     mime="application/json"
                 )
+                st.download_button(
+                    label="下載我的音檔",
+                    data=audio_info['bytes'],
+                    file_name="my_pronunciation.wav",
+                    mime="audio/wav"
+                )    
             else:
                 st.warning("偵測到的共振峰不足，請試著發音更清楚或錄久一點。")
                 
