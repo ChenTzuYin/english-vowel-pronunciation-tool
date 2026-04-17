@@ -114,18 +114,7 @@ if audio_info:
                 }
                 
 
-                st.download_button(
-                    label="🎶下載我的音檔",
-                    data=audio_info['bytes'],
-                    file_name="my_pronunciation.wav",
-                    mime="audio/wav"
-                )
-                st.download_button(
-                    label="💾 下載分析結果 (JSON)",
-                    data=json.dumps(result_data),
-                    file_name="vowel_analysis.json",
-                    mime="application/json"
-                )
+
             else:
                 st.warning("偵測到的共振峰不足，請試著發音更清楚或錄久一點。")
                 
@@ -134,3 +123,16 @@ if audio_info:
 
 st.divider()
 st.caption("提示：F1 較高代表舌位較低（如 [a]）；F2 較高代表舌位較前（如 [i]）。")
+
+st.download_button(
+    label="🎶下載我的音檔",
+    data=audio_info['bytes'],
+    file_name="my_pronunciation.wav",
+    mime="audio/wav"
+)
+st.download_button(
+    label="💾 下載分析結果 (JSON)",
+    data=json.dumps(result_data),
+    file_name="vowel_analysis.json",
+    mime="application/json"
+)
