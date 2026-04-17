@@ -7,52 +7,6 @@ import numpy as np
 import scipy.signal
 import json
 
-# 1. 注入自定義 CSS
-st.markdown("""
-<style>
-    /* 強制定位所有在 mic_recorder 內的按鈕 */
-    div[data-testid="stVerticalBlock"] div[data-testid="stHorizontalBlock"] button,
-    .stButton > button, 
-    button {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        margin: 0 auto !important;
-        padding: 0 !important;
-        width: 150px !important;
-        height: 150px !important;
-        border-radius: 50% !important;
-        font-size: 20px !important;
-        font-weight: bold !important;
-        border: 4px solid white !important;
-        transition: all 0.2s ease !important;
-    }
-
-    /* 藍色狀態：匹配「開始」字眼 */
-    button:has(div p:contains("開始")), 
-    button:contains("開始") {
-        background-color: #007bff !important;
-        color: white !important;
-        box-shadow: 0 0 15px rgba(0,123,255,0.4) !important;
-    }
-
-    /* 紅色閃爍狀態：匹配「停止」字眼 */
-    button:has(div p:contains("停止")), 
-    button:contains("停止") {
-        background-color: #ff4b4b !important;
-        color: white !important;
-        animation: pulse-red 1.2s infinite !important;
-    }
-
-    @keyframes pulse-red {
-        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 75, 75, 0.7); }
-        50% { transform: scale(1.05); }
-        70% { box-shadow: 0 0 0 25px rgba(255, 75, 75, 0); }
-        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 75, 75, 0); }
-    }
-</style>
-""", unsafe_allow_html=True)
-
 # 設定頁面
 st.set_page_config(page_title="英語母音發音輔助工具", layout="centered")
 
