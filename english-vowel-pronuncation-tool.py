@@ -7,6 +7,45 @@ import numpy as np
 import scipy.signal
 import json
 
+# 1. 注入自定義 CSS
+st.markdown("""
+<style>
+    /* 定位到 mic_recorder 的按鈕 */
+    button[data-testid="stBaseButton-secondary"] {
+        width: 120px !important;
+        height: 120px !important;
+        border-radius: 50% !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px !important;
+        border: none !important;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+
+    /* 尚未錄音時：藍色 + 麥克風 (透過文字判定) */
+    button[data-testid="stBaseButton-secondary"]:has(div:contains("開始錄音")) {
+        background-color: #007bff !important; /* 專業藍 */
+        color: white !important;
+    }
+
+    /* 正在錄音時：紅色 + 停止鍵 + 閃爍動畫 */
+    button[data-testid="stBaseButton-secondary"]:has(div:contains("停止錄音")) {
+        background-color: #ff4b4b !important; /* 警告紅 */
+        color: white !important;
+        animation: pulse-red 1.5s infinite;
+    }
+
+    /* 閃爍動畫定義 */
+    @keyframes pulse-red {
+        0% { box-shadow: 0 0 0 0 rgba(255, 75, 75, 0.7); }
+        70% { box-shadow: 0 0 0 20px rgba(255, 75, 75, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(255, 75, 75, 0); }
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # 設定頁面
 st.set_page_config(page_title="英語母音發音輔助工具", layout="centered")
 
@@ -53,7 +92,7 @@ def get_formants(audio_bytes, gender_max_formant):
         raise Exception(f"分析過程出錯: {e}")
 
 # UI 介面
-st.title("🎙️ 英語母音發音輔助工具")
+st.title("英語母音發音輔助工具")
 st.write("本工具會擷取您發音中的 F1 (舌位高低) 與 F2 (舌位前後) 頻率。")
 
 # 側邊欄設定
@@ -68,9 +107,10 @@ st.divider()
 # 錄音組件
 st.subheader("1. 錄製母音")
 st.write("請發出一個長母音（例如 [i], [a], [u]），持續約 1-2 秒。")
+
 audio_info = mic_recorder(
-    start_prompt="開始錄音 🎤",
-    stop_prompt="停止錄音 ⏹️",
+    start_prompt="開始錄音 🎤", # 這裡的文字會觸發藍色 CSS
+    stop_prompt="停止錄音 ⏹️", # 這裡的文字會觸發紅色 CSS 與閃爍
     key='vowel_recorder'
 )
 
