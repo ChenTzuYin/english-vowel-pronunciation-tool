@@ -8,10 +8,9 @@ import numpy as np
 import scipy.signal
 from pathlib import Path
 
-# --- 1. 設定與資料結構 ---
+# --- 1. 初始化設定與資料結構 ---
 st.set_page_config(page_title="英語母音發音視覺回饋系統", layout="wide")
 
-# 整合之前分析出的最高點座標與範圍
 VOWEL_MAP = {
     "i (eat/see)": {
         "prefix": "01", "v_key": "high_i", "word": "eat", "t_suffix": "tougue",
@@ -79,14 +78,15 @@ VOWEL_MAP = {
     }
 }
 
-# --- 2. 工具函數 ---
+# --- 2. 函式定義 ---
 
 def get_formants(audio_bytes, gender_max_formant):
     audio = AudioSegment.from_file(io.BytesIO(audio_bytes)).set_channels(1).set_frame_rate(22050)
     y = np.array(audio.get_array_of_samples(), dtype=np.float32) / 32768.0
     y = scipy.signal.lfilter([1, -0.63], [1], y)
     mid = len(y) // 2
-    chunk = y[mid : mid + int(0.2 * 22050)] if len(y) > int(0.2 * 22050) else y
+    chunk_size = int(0.2 * 22050)
+    chunk = y[mid : mid + chunk_size] if len(y) > chunk_size else y
     n_coeffs = int(22050 / 1000) + (4 if gender_max_formant > 5000 else 2)
     lpc_coeffs = librosa.lpc(chunk, order=n_coeffs)
     roots = np.roots(lpc_coeffs)
@@ -96,72 +96,60 @@ def get_formants(audio_bytes, gender_max_formant):
     return [f for f in formants if f > 250]
 
 def draw_overlay_result(target_v_info, actual_v_info, st_f1, st_f2, g_key):
-    """
-    target_v_info: 學生原本要練習的母音資料
-    actual_v_info: 學生實際發出的母音資料 (若判定失敗則可設為 None)
-    """
-    # 1. 讀取示範底圖 (剖面圖)
     base_path = Path("assets") / f"{target_v_info['prefix']}_{target_v_info['v_key']}_full.png"
     base_img = Image.open(base_path).convert("RGBA")
+    base_size = base_img.size
     
-    # 2. 如果有判定出母音，疊加對應的肌肉圖
     if actual_v_info:
         tongue_path = Path("assets") / f"{actual_v_info['prefix']}_{actual_v_info['v_key']}_{actual_v_info['t_suffix']}.png"
         if tongue_path.exists():
-            tongue_img = Image.open(tongue_path).convert("RGBA")
-            # 製作 50% 透明度圖層
-            alpha = tongue_img.split()[3]
-            alpha = alpha.point(lambda p: p * 0.5) # 設定 50% 透明度
+            tongue_img = Image.open(tongue_path).convert("RGBA").resize(base_size, Image.Resampling.LANCZOS)
+            alpha = tongue_img.split()[3].point(lambda p: p * 0.5) 
             tongue_img.putalpha(alpha)
-            # 疊加到背景圖
             base_img.alpha_composite(tongue_img)
     
     draw = ImageDraw.Draw(base_img)
+    tx, ty = target_v_info["target_px"]
+    draw.ellipse([tx-8, ty-8, tx+8, ty+8], outline="blue", width=3)
     
-    # 3. 畫目標藍圈 (學生練習目標)
     ref_f1 = target_v_info["ref"][g_key]["f1"]
     ref_f2 = target_v_info["ref"][g_key]["f2"]
-    tx, ty = target_v_info["target_px"]
-    r1 = 8
-    draw.ellipse([tx-r1, ty-r1, tx+r1, ty+r1], outline="blue", width=3)
-    
-    # 4. 計算並畫出學生實際發音紅點
-    # 根據 F1/F2 相對位移計算紅點像素位置
     st_x = tx - ((st_f2 - ref_f2) * 0.08)
     st_y = ty + ((st_f1 - ref_f1) * 0.15)
-    r2 = 10
-    draw.ellipse([st_x-r2, st_y-r2, st_x+r2, st_y+r2], fill=(255, 0, 0, 180))
-    
+    draw.ellipse([st_x-10, st_y-10, st_x+10, st_y+10], fill=(255, 0, 0, 180))
     return base_img
 
 # --- 3. UI 介面 ---
-st.title("👅 舌頭肌肉即時疊加回饋系統")
+st.title("👅 英語母音發音視覺回饋與診斷系統")
 
 with st.sidebar:
     st.header("1. 設定")
-    selected_label = st.selectbox("目標練習母音：", list(VOWEL_MAP.keys()))
-    gender = st.radio("性別/年齡類型：", ("女性 / 小孩", "男性"))
+    selected_label = st.selectbox("練習母音：", list(VOWEL_MAP.keys()))
+    gender = st.radio("您的性別：", ("女性 / 小孩", "男性"))
     v_data = VOWEL_MAP[selected_label]
     g_key = "female" if "女性" in gender else "male"
     max_f = 5500 if g_key == "female" else 5000
+    ref_f1 = v_data["ref"][g_key]["f1"]
+    ref_f2 = v_data["ref"][g_key]["f2"]
 
-# 介面佈局
 col1, col2 = st.columns(2)
 with col1:
     st.subheader(f"目標：/{v_data['v_key']}/")
-    st.image(f"assets/{v_data['prefix']}_{v_data['v_key']}_full.png", width=300)
+    st.image(f"assets/{v_data['prefix']}_{v_data['v_key']}_full.png", width=350)
     st.audio(f"assets/{v_data['prefix']}_{v_data['v_key']}_{v_data['word']}.mp3")
 
 with col2:
-    st.subheader("錄音與診斷")
-    rec = mic_recorder(start_prompt="請按住並發長音 🎤", stop_prompt="放開停止分析 ⏹️", key='rec')
+    st.subheader("2. 錄音練習")
+    rec = mic_recorder(start_prompt="按住錄音 🎤", stop_prompt="停止分析 ⏹️", key='rec')
+
+st.divider()
 
 if rec:
     f_list = get_formants(rec['bytes'], max_f)
     if len(f_list) >= 2:
         f1, f2 = f_list[0], f_list[1]
         
-        # 判定學生實際發出的母音
+        # 判定學生發音落點
         actual_v_data = None
         for k, info in VOWEL_MAP.items():
             r = info["ref"][g_key]
@@ -169,18 +157,33 @@ if rec:
                 actual_v_data = info
                 break
         
-        # 顯示數值
-        st.write(f"📊 您的數據：F1={round(f1,1)}Hz, F2={round(f2,1)}Hz")
+        res_col1, res_col2 = st.columns([1, 1])
         
-        # 繪製疊加圖
-        res_img = draw_overlay_result(v_data, actual_v_data, f1, f2, g_key)
-        
-        st.image(res_img, caption="半透明舌頭：您實際的發音形狀 | 底圖：練習目標", use_container_width=True)
-        
-        if actual_v_data and actual_v_data['v_key'] == v_data['v_key']:
-            st.balloons()
-            st.success("太棒了！您的發音非常標準。")
-        elif actual_v_data:
-            st.warning(f"偵測到您目前的舌頭形狀較接近 /{actual_v_data['v_key']}/")
-        else:
-            st.info("您的發音位置在標準範圍之外，請觀察紅點位置進行調整。")
+        with res_col1:
+            st.subheader("📊 診斷建議")
+            
+            # --- F1 (舌位高低) 建議 ---
+            f1_diff = f1 - ref_f1
+            if abs(f1_diff) < 50:
+                st.write("✅ **舌位高低：** 非常標準！")
+            elif f1_diff > 0:
+                st.write(f"❌ **舌位高低：** 您的 F1 偏高約 {int(f1_diff)} Hz。建議：**舌頭再抬高一點點**。")
+            else:
+                st.write(f"❌ **舌位高低：** 您的 F1 偏低約 {int(abs(f1_diff))} Hz。建議：**嘴巴再張大一點，舌位放低**。")
+
+            # --- F2 (舌位前後) 建議 ---
+            f2_diff = f2 - ref_f2
+            if abs(f2_diff) < 150:
+                st.write("✅ **舌位前後：** 非常標準！")
+            elif f2_diff > 0:
+                st.write(f"❌ **舌位前後：** 您的 F2 偏高約 {int(f2_diff)} Hz。建議：**舌頭稍稍往後縮一點**。")
+            else:
+                st.write(f"❌ **舌位前後：** 您的 F2 偏低約 {int(abs(f2_diff))} Hz。建議：**舌頭再往前推一點**。")
+
+            st.metric("當前 F1", f"{round(f1,1)} Hz", f"{round(f1_diff,1)} Hz", delta_color="inverse")
+            st.metric("當前 F2", f"{round(f2,1)} Hz", f"{round(f2_diff,1)} Hz")
+
+        with res_col2:
+            st.subheader("📸 視覺比對")
+            res_img = draw_overlay_result(v_data, actual_v_data, f1, f2, g_key)
+            st.image(res_img, width=350, caption="紅點為您的實際位置")
