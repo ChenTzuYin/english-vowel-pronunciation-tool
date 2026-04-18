@@ -6,16 +6,15 @@ import io
 import librosa
 import numpy as np
 import scipy.signal
-import json
+from pathlib import Path
 
 # --- 1. 設定與資料結構 ---
-st.set_page_config(page_title="英語母音發音輔助工具", layout="wide")
+st.set_page_config(page_title="英語母音發音視覺回饋系統", layout="wide")
 
-# 整合學術常模、判定範圍與像素座標
-# 範圍設定：F1/F2 (min, max)
+# 整合之前分析出的最高點座標與範圍
 VOWEL_MAP = {
     "i (eat/see)": {
-        "prefix": "01", "v_key": "high_i", "word": "eat",
+        "prefix": "01", "v_key": "high_i", "word": "eat", "t_suffix": "tougue",
         "target_px": (196, 115),
         "ref": {
             "female": {"f1": 310, "f2": 2790, "range_f1": (250, 400), "range_f2": (2300, 3200)},
@@ -23,7 +22,7 @@ VOWEL_MAP = {
         }
     },
     "eɪ (ate/say)": {
-        "prefix": "02", "v_key": "ei", "word": "ate",
+        "prefix": "02", "v_key": "ei", "word": "ate", "t_suffix": "tongue",
         "target_px": (196, 122),
         "ref": {
             "female": {"f1": 480, "f2": 2400, "range_f1": (400, 550), "range_f2": (2000, 2600)},
@@ -31,7 +30,7 @@ VOWEL_MAP = {
         }
     },
     "ɛ (bed/egg)": {
-        "prefix": "03", "v_key": "epsilon", "word": "bed",
+        "prefix": "03", "v_key": "epsilon", "word": "bed", "t_suffix": "tongue",
         "target_px": (204, 136),
         "ref": {
             "female": {"f1": 610, "f2": 2330, "range_f1": (550, 700), "range_f2": (1800, 2400)},
@@ -39,7 +38,7 @@ VOWEL_MAP = {
         }
     },
     "æ (bad/cat)": {
-        "prefix": "04", "v_key": "ash", "word": "bad",
+        "prefix": "04", "v_key": "ash", "word": "bad", "t_suffix": "tongue",
         "target_px": (214, 153),
         "ref": {
             "female": {"f1": 860, "f2": 2050, "range_f1": (750, 1000), "range_f2": (1700, 2200)},
@@ -47,7 +46,7 @@ VOWEL_MAP = {
         }
     },
     "u (too/zoo)": {
-        "prefix": "05", "v_key": "high_u", "word": "too",
+        "prefix": "05", "v_key": "high_u", "word": "too", "t_suffix": "tongue",
         "target_px": (247, 109),
         "ref": {
             "female": {"f1": 370, "f2": 950, "range_f1": (300, 450), "range_f2": (700, 1200)},
@@ -55,7 +54,7 @@ VOWEL_MAP = {
         }
     },
     "oʊ (go/no)": {
-        "prefix": "06", "v_key": "ou", "word": "go",
+        "prefix": "06", "v_key": "ou", "word": "go", "t_suffix": "tongue",
         "target_px": (259, 134),
         "ref": {
             "female": {"f1": 500, "f2": 1000, "range_f1": (450, 600), "range_f2": (800, 1300)},
@@ -63,7 +62,7 @@ VOWEL_MAP = {
         }
     },
     "ɔ (dog/law)": {
-        "prefix": "07", "v_key": "open_o", "word": "dog",
+        "prefix": "07", "v_key": "open_o", "word": "dog", "t_suffix": "tongue",
         "target_px": (247, 146),
         "ref": {
             "female": {"f1": 700, "f2": 1100, "range_f1": (650, 800), "range_f2": (900, 1400)},
@@ -71,7 +70,7 @@ VOWEL_MAP = {
         }
     },
     "ɑ (box/hot)": {
-        "prefix": "08", "v_key": "script_a", "word": "box",
+        "prefix": "08", "v_key": "script_a", "word": "box", "t_suffix": "tongue",
         "target_px": (241, 157),
         "ref": {
             "female": {"f1": 850, "f2": 1220, "range_f1": (750, 1000), "range_f2": (1000, 1500)},
@@ -83,7 +82,6 @@ VOWEL_MAP = {
 # --- 2. 工具函數 ---
 
 def get_formants(audio_bytes, gender_max_formant):
-    """擷取 F1, F2"""
     audio = AudioSegment.from_file(io.BytesIO(audio_bytes)).set_channels(1).set_frame_rate(22050)
     y = np.array(audio.get_array_of_samples(), dtype=np.float32) / 32768.0
     y = scipy.signal.lfilter([1, -0.63], [1], y)
@@ -97,94 +95,92 @@ def get_formants(audio_bytes, gender_max_formant):
     formants = sorted(angz * (22050 / (2 * np.pi)))
     return [f for f in formants if f > 250]
 
-def draw_result(base_img_path, st_f1, st_f2, target_px, ref_f1, ref_f2):
-    """繪製疊加紅點的圖片"""
-    img = Image.open(base_img_path).convert("RGBA")
-    draw = ImageDraw.Draw(img)
+def draw_overlay_result(target_v_info, actual_v_info, st_f1, st_f2, g_key):
+    """
+    target_v_info: 學生原本要練習的母音資料
+    actual_v_info: 學生實際發出的母音資料 (若判定失敗則可設為 None)
+    """
+    # 1. 讀取示範底圖 (剖面圖)
+    base_path = Path("assets") / f"{target_v_info['prefix']}_{target_v_info['v_key']}_full.png"
+    base_img = Image.open(base_path).convert("RGBA")
     
-    # 計算位移映射 (簡單線性預估)
-    f1_diff = st_f1 - ref_f1
-    f2_diff = st_f2 - ref_f2
-    st_x = target_px[0] - (f2_diff * 0.08)
-    st_y = target_px[1] + (f1_diff * 0.15)
+    # 2. 如果有判定出母音，疊加對應的肌肉圖
+    if actual_v_info:
+        tongue_path = Path("assets") / f"{actual_v_info['prefix']}_{actual_v_info['v_key']}_{actual_v_info['t_suffix']}.png"
+        if tongue_path.exists():
+            tongue_img = Image.open(tongue_path).convert("RGBA")
+            # 製作 50% 透明度圖層
+            alpha = tongue_img.split()[3]
+            alpha = alpha.point(lambda p: p * 0.5) # 設定 50% 透明度
+            tongue_img.putalpha(alpha)
+            # 疊加到背景圖
+            base_img.alpha_composite(tongue_img)
     
-    # 畫目標藍圈
+    draw = ImageDraw.Draw(base_img)
+    
+    # 3. 畫目標藍圈 (學生練習目標)
+    ref_f1 = target_v_info["ref"][g_key]["f1"]
+    ref_f2 = target_v_info["ref"][g_key]["f2"]
+    tx, ty = target_v_info["target_px"]
     r1 = 8
-    draw.ellipse([target_px[0]-r1, target_px[1]-r1, target_px[0]+r1, target_px[1]+r1], outline="blue", width=3)
-    # 畫學生紅點
+    draw.ellipse([tx-r1, ty-r1, tx+r1, ty+r1], outline="blue", width=3)
+    
+    # 4. 計算並畫出學生實際發音紅點
+    # 根據 F1/F2 相對位移計算紅點像素位置
+    st_x = tx - ((st_f2 - ref_f2) * 0.08)
+    st_y = ty + ((st_f1 - ref_f1) * 0.15)
     r2 = 10
     draw.ellipse([st_x-r2, st_y-r2, st_x+r2, st_y+r2], fill=(255, 0, 0, 180))
-    return img
+    
+    return base_img
 
 # --- 3. UI 介面 ---
-st.title("🎙️ 英語母音發音即時回饋系統")
+st.title("👅 舌頭肌肉即時疊加回饋系統")
 
 with st.sidebar:
-    st.header("1. 練習設定")
-    selected_label = st.selectbox("選擇目標母音：", list(VOWEL_MAP.keys()))
-    gender = st.radio("說話者類型：", ("女性 / 小孩", "男性"))
-    
+    st.header("1. 設定")
+    selected_label = st.selectbox("目標練習母音：", list(VOWEL_MAP.keys()))
+    gender = st.radio("性別/年齡類型：", ("女性 / 小孩", "男性"))
     v_data = VOWEL_MAP[selected_label]
     g_key = "female" if "女性" in gender else "male"
-    ref_f1 = v_data["ref"][g_key]["f1"]
-    ref_f2 = v_data["ref"][g_key]["f2"]
     max_f = 5500 if g_key == "female" else 5000
 
-# 第一步：示範
+# 介面佈局
 col1, col2 = st.columns(2)
 with col1:
-    st.markdown(f"### 目標：/{v_data['v_key']}/")
-    audio_path = f"assets/{v_data['prefix']}_{v_data['v_key']}_{v_data['word']}.mp3"
-    try:
-        st.audio(audio_path)
-    except:
-        st.info("等待範例音檔...")
+    st.subheader(f"目標：/{v_data['v_key']}/")
+    st.image(f"assets/{v_data['prefix']}_{v_data['v_key']}_full.png", width=300)
+    st.audio(f"assets/{v_data['prefix']}_{v_data['v_key']}_{v_data['word']}.mp3")
 
 with col2:
-    img_path = f"assets/{v_data['prefix']}_{v_data['v_key']}_full.png"
-    try:
-        st.image(img_path, width=300, caption="標準舌位圖")
-    except:
-        st.info("等待舌位圖...")
+    st.subheader("錄音與診斷")
+    rec = mic_recorder(start_prompt="請按住並發長音 🎤", stop_prompt="放開停止分析 ⏹️", key='rec')
 
-st.divider()
-
-# 第二步：錄音分析
-st.header("2. 開始練習")
-audio_info = mic_recorder(start_prompt="按住說話 🎤", stop_prompt="放開停止 ⏹️", key='vowel_rec')
-
-if audio_info:
-    f_list = get_formants(audio_info['bytes'], max_f)
+if rec:
+    f_list = get_formants(rec['bytes'], max_f)
     if len(f_list) >= 2:
         f1, f2 = f_list[0], f_list[1]
         
-        # 判定發音落在哪個母音區塊
-        detected_key = "未知 (請調整發音)"
-        detected_v_data = None
+        # 判定學生實際發出的母音
+        actual_v_data = None
         for k, info in VOWEL_MAP.items():
             r = info["ref"][g_key]
             if r["range_f1"][0] <= f1 <= r["range_f1"][1] and r["range_f2"][0] <= f2 <= r["range_f2"][1]:
-                detected_key = k
-                detected_v_data = info
+                actual_v_data = info
                 break
         
-        # 顯示結果
-        res_col1, res_col2 = st.columns([1, 1])
-        with res_col1:
-            st.success(f"辨識結果：{detected_key}")
-            st.metric("您的 F1 (高低)", f"{round(f1, 1)} Hz", f"{round(f1-ref_f1, 1)} Hz", delta_color="inverse")
-            st.metric("您的 F2 (前後)", f"{round(f2, 1)} Hz", f"{round(f2-ref_f2, 1)} Hz")
+        # 顯示數值
+        st.write(f"📊 您的數據：F1={round(f1,1)}Hz, F2={round(f2,1)}Hz")
         
-        with res_col2:
-            # 如果辨識出特定母音，顯示該母音的疊加圖；否則用目前練習目標的圖
-            display_info = detected_v_data if detected_v_data else v_data
-            display_img_path = f"assets/{display_info['prefix']}_{display_info['v_key']}_full.png"
-            
-            try:
-                res_img = draw_result(display_img_path, f1, f2, display_info["target_px"], ref_f1, ref_f2)
-                st.image(res_img, width=400, caption="紅點：您的位置 | 藍圈：目標位置")
-            except:
-                st.error("影像處理失敗，請確認 assets 資料夾。")
-    else:
-        st.warning("音訊不夠清晰，請發長一點的母音。")
-
+        # 繪製疊加圖
+        res_img = draw_overlay_result(v_data, actual_v_data, f1, f2, g_key)
+        
+        st.image(res_img, caption="半透明舌頭：您實際的發音形狀 | 底圖：練習目標", use_container_width=True)
+        
+        if actual_v_data and actual_v_data['v_key'] == v_data['v_key']:
+            st.balloons()
+            st.success("太棒了！您的發音非常標準。")
+        elif actual_v_data:
+            st.warning(f"偵測到您目前的舌頭形狀較接近 /{actual_v_data['v_key']}/")
+        else:
+            st.info("您的發音位置在標準範圍之外，請觀察紅點位置進行調整。")
