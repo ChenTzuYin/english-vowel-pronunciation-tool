@@ -1,7 +1,7 @@
 streamlit
 streamlit-mic-recorder
+pydub
 librosa
 numpy
 scipy
-pydub
-matplotlib
+Pillow
