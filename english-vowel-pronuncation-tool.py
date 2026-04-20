@@ -203,3 +203,58 @@ if st.session_state.stage == "JP_CALIB":
             st.rerun()
     else:
         st.warning(f"還差 {5 - progress} 個音即可解鎖英文挑戰。")
+
+
+# --- 第二階段：英文母音練習 ---
+else:
+    st.subheader("第二階段：挑戰英文母音")
+    
+    selected_en = st.selectbox("請選擇挑戰母音：", list(VOWEL_MAP.keys()))
+    en_v = VOWEL_MAP[selected_en]
+    
+    col_target, col_practice = st.columns(2)
+    
+    with col_target:
+        st.markdown(f"### 目標音：`/{en_v['v_key']}/`")
+        en_img_name = f"{en_v['prefix']}_{en_v['v_key']}_full.png"
+        en_target_img = draw_static_target(en_img_name, en_v['target_px'])
+        
+        if en_target_img:
+            st.image(en_target_img, width=350, caption="紅圈處為該母音的「舌面最高點」")
+        else:
+            st.image(f"assets/{en_img_name}", width=350)
+        
+        st.write("👂 **聽聽示範音檔：**")
+        word_choice = st.radio("選擇單字：", en_v["words"], horizontal=True, key="en_word")
+        st.audio(f"assets/{en_v['prefix']}_{en_v['v_key']}_{word_choice}.mp3")
+
+    with col_practice:
+        st.markdown("### 🎤 開始練習")
+        rec_en = mic_recorder(start_prompt="請點擊並發音", key=f"rec_en_{en_v['v_key']}")
+        
+        if rec_en:
+            f_en = get_formants(rec_en['bytes'])
+            if len(f_en) >= 2:
+                f1, f2 = f_en[0], f_en[1]
+                
+                jp_key = en_v['jp_ref']
+                my_jp = st.session_state.jp_data.get(jp_key)
+                
+                res_img = draw_overlay(en_v, f1, f2, g_key, my_jp)
+                if res_img:
+                    st.image(res_img, width=400, caption="紅圈：目標位置 | 紅點：您的發音位置")
+                
+                st.metric("您的 F1 (高低)", f"{int(f1)} Hz")
+                st.metric("您的 F2 (前後)", f"{int(f2)} Hz")
+                
+                target_f1 = en_v['ref'][g_key]['f1']
+                if f1 - target_f1 > 70:
+                    st.warning("💡 提示：嘴巴可以再縮小一點點。")
+                elif target_f1 - f1 > 70:
+                    st.warning("💡 提示：嘴巴可以再張大一點點。")
+                else:
+                    st.success("⭐⭐⭐ 完美的高低位置！")
+
+    if st.button("⬅️ 返回日文校正階段"):
+        st.session_state.stage = "JP_CALIB"
+        st.rerun()
