@@ -383,7 +383,36 @@ if rec_en:
         res_img = draw_overlay(en_v, f_en[0], f_en[1], g_key)
         if res_img:
             st.image(res_img, width=400, caption="推定された舌の位置 (Red dot indicates estimated tongue position)")
+
+# 英語の録音データ (rec_en) が存在し、かつ中身がある場合のみ解析を実行
+# ('rec_en' in locals() で変数が定義されているかチェックします)
+if 'rec_en' in locals() and rec_en: 
+    # フォルマント (F1, F2) の抽出を実行
+    f_en = get_formants(rec_en['bytes'])
     
-    if st.button("⬅️ 日本語の録音に戻る"):
-        st.session_state.stage = "JP_CALIB"
-        st.rerun()
+    # 解析が成功し、2つ以上のフォルマントが取得できた場合の処理
+    if len(f_en) >= 2:
+        # Pydub を使用して音声データを再読み込みし、numpy 配列に変換
+        audio_data = AudioSegment.from_file(io.BytesIO(rec_en['bytes'])).set_channels(1).set_frame_rate(22050)
+        y_en = np.array(audio_data.get_array_of_samples(), dtype=np.float32) / 32768.0
+        sr_en = 22050
+
+        # UIセクション: 音声信号の可視化 (FFT 解析結果)
+        st.divider()
+        st.subheader("🎵 音声信号解析 (FFT Analysis)")
+        
+        # 波形図とスペクトログラムをプロットして表示
+        fig = plot_voice_analysis(y_en, sr_en)
+        st.pyplot(fig)
+        
+        # 舌位置の推定画像を生成し、オーバーレイ表示
+        res_img = draw_overlay(en_v, f_en[0], f_en[1], g_key)
+        if res_img:
+            st.image(res_img, width=400, caption="推定された舌の位置 (Estimated Tongue Position)")
+
+
+# 前のステップ（日本語のキャリブレーション）に戻るためのボタン
+if st.button("⬅️ 日本語の録音に戻る"):
+    # セッション状態を更新し、画面をリロード
+    st.session_state.stage = "JP_CALIB"
+    st.rerun()
