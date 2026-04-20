@@ -7,6 +7,8 @@ import librosa
 import numpy as np
 import scipy.signal
 from pathlib import Path
+import matplotlib.pyplot as plt
+import librosa.display
 
 # --- 1. 初期設定 (Initial Settings) ---
 st.set_page_config(page_title="英語母音発音視覚化システム", layout="wide")
