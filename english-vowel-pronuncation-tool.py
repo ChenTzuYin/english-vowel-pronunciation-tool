@@ -107,13 +107,6 @@ def draw_static_target(image_filename, target_px):
     draw.ellipse([tx-10, ty-10, tx+10, ty+10], outline="red", width=4)
     return img
 
-這是一個非常棒的想法！要讓學生完全脫離日文的干擾，我們必須把繪圖邏輯從「與日文基準的相對位移」改為「以英文目標為中心的絕對位移」。
-
-我將原本的 draw_overlay 函式進行了改寫。這段程式碼加入了**「磁吸效應（スナップ効果）」**：只要學生的發音落在合格範圍內，紅點就會直接鎖定在目標圓心，並將原本參考日文的參數移除。
-
-以下是改寫後的程式碼與日文註解：
-
-Python
 def draw_overlay(en_v, f1, f2, g_key):
     """
     英語の標準値を基準に、発音位置を画像上に描画する関数。
@@ -145,10 +138,9 @@ def draw_overlay(en_v, f1, f2, g_key):
         diff_f2 = f2 - target_f2
 
     # 3. 描画位置の計算
-    # 以前の my_jp_ref は使用せず、純粋にターゲットからの距離で計算
-    # 係数 (0.05, 0.1) は、画像上でのドットの動きの敏感さを調整します
-    st_x = tx - (diff_f2 * 0.05) 
-    st_y = ty + (diff_f1 * 0.1)
+    # 係数 (0.2, 0.2) は、画像上でのドットの動きの敏感さを調整します
+    st_x = tx - (diff_f2 * 0.2) 
+    st_y = ty + (diff_f1 * 0.2)
 
     # --- 画像描画処理 (以下は以前のロジックを継承) ---
     img_path = Path(f"img/{en_v['prefix']}_{en_v['v_key']}_{en_v['t_suffix']}.png")
