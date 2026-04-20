@@ -306,17 +306,28 @@ else:
                     st.subheader("📊 アドバイス")
                     
                     # F1（舌の高さ）について
-                    if avg_ref['range_f1'][0] <= f1 <= avg_ref['range_f1'][1]:
+                    f1_diff = f1 - ref_f1
+                    if  abs(f1_diff) < 50:
                         st.success("✅ **舌の高さ：バッチリです！")
-                    elif f1 < avg_ref['range_f1'][0]:
+                    elif f1_diff > 0:
                         st.warning("❌ **舌の高さ：舌の位置が高すぎます。もう少し口を大きく開けてみましょう。")
                     else:
                         st.warning("❌ **舌の高さ：舌の位置が低すぎます。もう少し舌を持ち上げてみましょう。")
 
                     # F2（舌の前後）について
-                    if avg_ref['range_f2'][0] <= f2 <= avg_ref['range_f2'][1]:
+                    f2_diff = f2 - ref_f2
+                    if abs(f2_diff) < 150:
                         st.success("✅ **舌の前後：バッチリです！")
-                    elif f2 < avg_ref['range_f2'][0]:
+                    elif f2_diff > 0:
                         st.warning("❌ **舌の前後：舌が少し下がりすぎています。もう少し前に出してみましょう。")
                     else:
                         st.warning("❌ **舌の前後：舌が少し前に出すぎています。もう少し後ろに下げてください。")
+
+            st.metric("現在の第一フォルマント（舌の高さ）", f"{round(f1,1)} Hz", f"{round(f1_diff,1)} Hz", delta_color="inverse")
+            st.metric("現在の第二フォルマント（舌の前後）", f"{round(f2,1)} Hz", f"{round(f2_diff,1)} Hz")
+
+        with res_col2:
+            st.subheader("👓グラフ")
+            res_img = draw_overlay_result(v_data, actual_v_data, f1, f2, g_key)
+            st.image(res_img, width=350, caption="赤い点は、発音時における舌の最も高い位置を推定したものです。")
+
