@@ -363,6 +363,10 @@ else:
                     st.caption(f"💡 英語の標準平均値（F1:{target_f1}, F2:{target_f2}）との差を表示しています。")
                     st.caption(f"🎯 目標範囲: F1({avg_ref['range_f1'][0]}-{avg_ref['range_f1'][1]}), F2({avg_ref['range_f2'][0]}-{avg_ref['range_f2'][1]})")
 
+
+    
+
+        
 # エラー回避: 'rec_en' が定義されており、かつデータが存在する場合のみ実行
 if 'rec_en' in locals() and rec_en:
     # 英語トレーニングのステージ (EN_LEVEL) でのみ表示するように限定し、
@@ -377,11 +381,15 @@ if 'rec_en' in locals() and rec_en:
 
             st.divider()
             st.subheader("🎵 音声信号解析 (FFT Analysis)")
-            
-            # グラフの描画
-            fig = plot_voice_analysis(y_en, sr_en)
-            # key を指定することで、Streamlit 内部での ID 重複を確実に防ぎます
-            st.pyplot(fig, clear_figure=True) 
+                
+            col_chart, col_empty = st.columns([1, 1]) # 1:1 分割，圖表佔左邊一半
+    
+            with col_chart:
+                # グラフの描画
+                fig = plot_voice_analysis(y_en, sr_en)
+                # key を指定することで、Streamlit 内部での ID 重複を確実に防ぎます
+                st.pyplot(fig, clear_figure=True)
+
 
 # --- ナビゲーションボタン (Navigation) ---
 if st.session_state.stage == "EN_LEVEL":
