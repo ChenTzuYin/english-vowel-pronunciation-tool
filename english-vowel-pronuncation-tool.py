@@ -192,7 +192,7 @@ if st.session_state.stage == "JP_CALIB":
     col_j1, col_j2 = st.columns(2)
     
     with col_j1:
-        selected_jp = st.selectbox("Step 1: 請選擇一種母音並聽取下方示範音檔：", list(JP_VOWELS.keys()))
+        selected_jp = st.selectbox("Step 1: 請選擇一種母音並聽取▶️下方示範音檔：", list(JP_VOWELS.keys()))
         jp_v = JP_VOWELS[selected_jp]
         img = draw_static_target(jp_v['ref_img'], jp_v['target_px'])
         if img:
@@ -212,8 +212,8 @@ if st.session_state.stage == "JP_CALIB":
         
         # 2. 錄音組件
         rec_j = mic_recorder(
-            start_prompt=f"Step 2: 錄製你的發音 {selected_jp}", 
-            stop_prompt="停止錄音並分析", 
+            start_prompt=f"Step 2: 🎙️錄製你的發音 {selected_jp}", 
+            stop_prompt="⏹️停止錄音並分析", 
             key=f"rec_jp_{jp_v['key']}"
         )
         
@@ -275,7 +275,7 @@ else:
         word_choice = st.radio("選擇單字：", en_v["words"], horizontal=True, key="en_word")
         st.audio(f"assets/{en_v['prefix']}_{en_v['v_key']}_{word_choice}.mp3")
     with col_practice:
-        st.markdown("### 🎤 開始練習")
+        st.markdown("### 🎙️ 開始練習")
         jp_key = en_v['jp_ref']
         my_jp_ref = st.session_state.jp_data.get(jp_key)
         avg_ref = en_v['ref'][g_key]
