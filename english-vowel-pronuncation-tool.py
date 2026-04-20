@@ -310,11 +310,10 @@ else:
                     # 1. ユーザーの発音位置を画像に描画
                     res_img = draw_overlay(en_v, f1, f2, g_key, my_jp_ref)
                     if res_img:
-                        st.image(res_img, width=400, caption="赤い点が現在の舌の位置（推定）です。")
+                        st.image(res_img, width=400, caption="赤点は現在の舌の最も高い位置を推定したものです。")
                     
                     st.divider()
-                   # --- 診断アドバイス (Diagnostic Advice) ---
-                    st.divider()
+                   # --- 診断アドバイス---
                     st.subheader("📊 アドバイス")
                     
                     # 英語の標準平均値（ターゲット）を取得
@@ -364,6 +363,4 @@ else:
                     st.caption(f"💡 英語の標準平均値（F1:{target_f1}, F2:{target_f2}）との差を表示しています。")
                     st.caption(f"🎯 目標範囲: F1({avg_ref['range_f1'][0]}-{avg_ref['range_f1'][1]}), F2({avg_ref['range_f2'][0]}-{avg_ref['range_f2'][1]})")
         
-                    res_img = draw_overlay_result(v_data, actual_v_data, f1, f2, g_key)
-                    st.image(res_img, width=350, caption="赤い点は、発音時における舌の最も高い位置を推定したものです。")
 
