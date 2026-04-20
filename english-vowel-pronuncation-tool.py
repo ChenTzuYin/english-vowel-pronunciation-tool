@@ -135,22 +135,28 @@ def draw_overlay(v_data, f1, f2, g_key, jp_base=None):
     return img
 
 def draw_final_jp_map(jp_data):
-    """繪製避讓文字後的日文母音地圖"""
+    """繪製帶有半透明標籤背景與引導線的日文母音地圖"""
     base_img_name = "08_script_a_full.png" 
     base_path = Path("assets") / base_img_name
     if not base_path.exists(): return None
     
-    img = Image.open(base_path).convert("RGBA")
-    draw = ImageDraw.Draw(img)
+    # 讀取底圖並確保是 RGBA
+    base_img = Image.open(base_path).convert("RGBA")
     
-    # 定義標籤的相對位移方向 (避免重疊)
-    # 邏輯：高母音(i, u)往上/往外，低母音(a, o)往下
+    # 建立一個與底圖一樣大的透明圖層，專門用來畫半透明的方塊與線條
+    overlay = Image.new('RGBA', base_img.size, (255, 255, 255, 0))
+    draw_ov = ImageDraw.Draw(overlay)
+    
+    # 為了最後文字能完全清晰，我們在最原圖上畫文字
+    draw_base = ImageDraw.Draw(base_img)
+    
+    # 標籤避讓位移 (dx, dy)
     offsets = {
-        "a": (-60, 40),   # 往左下
-        "i": (-80, -40),  # 往左上
-        "u": (30, -50),   # 往右上
-        "e": (-90, 0),    # 正左
-        "o": (30, 40),    # 往右下
+        "a": (-70, 50),   # 往左下
+        "i": (-100, -50), # 往左上更遠處
+        "u": (40, -60),   # 往右上
+        "e": (-110, 10),  # 往左中
+        "o": (50, 50),    # 往右下
     }
 
     for jp_label, v_info in JP_VOWELS.items():
@@ -159,28 +165,30 @@ def draw_final_jp_map(jp_data):
             f1, f2 = jp_data[jp_key]
             tx, ty = v_info['target_px']
             
-            # 1. 畫紅點
-            draw.ellipse([tx-10, ty-10, tx+10, ty+10], fill=(255, 0, 0, 220))
+            # 1. 在底圖畫紅色實心點 (不透明)
+            draw_base.ellipse([tx-10, ty-10, tx+10, ty+10], fill=(255, 0, 0, 255))
             
-            # 2. 準備文字：使用羅馬字避免亂碼，格式：/i/ (300, 2900)
+            # 2. 準備文字
             label_text = f"/{jp_key}/ ({int(f1)}, {int(f2)})"
-            
-            # 3. 計算偏移位置
             dx, dy = offsets.get(jp_key, (20, 20))
             text_x, text_y = tx + dx, ty + dy
             
-            # 4. 繪製文字背景 (白色小方塊，增加辨識度)
-            # 這裡計算文字大約寬度，畫一個底色
-            text_w = len(label_text) * 7 
-            draw.rectangle([text_x-2, text_y-2, text_x+text_w, text_y+15], fill=(255, 255, 255, 180))
+            # 3. 在 Overlay 圖層畫半透明背景方塊 (Alpha 設為 140)
+            text_w = len(label_text) * 8 # 稍微加寬一點
+            draw_ov.rectangle(
+                [text_x-5, text_y-2, text_x+text_w, text_y+18], 
+                fill=(255, 255, 255, 140) # 140/255 的透明度
+            )
             
-            # 5. 繪製文字 (黑色)
-            draw.text((text_x, text_y), label_text, fill="black")
+            # 4. 在 Overlay 圖層畫半透明引導線
+            draw_ov.line([tx, ty, text_x, text_y], fill=(150, 150, 150, 100), width=2)
             
-            # 6. (進階) 畫一條細線連接紅點與文字
-            draw.line([tx, ty, text_x, text_y], fill=(100, 100, 100, 100), width=1)
+            # 5. 在底圖畫文字 (確保文字 100% 不透明，清晰好讀)
+            draw_base.text((text_x, text_y), label_text, fill="black")
             
-    return img
+    # 最後：將透明圖層 Alpha Composite 到底圖上
+    combined = Image.alpha_composite(base_img, overlay)
+    return combined
     
 # --- 4. Session State 管理 ---
 if 'stage' not in st.session_state:
