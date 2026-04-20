@@ -245,7 +245,7 @@ else:
         en_target_img = draw_static_target(en_img_name, en_v['target_px'])
         
         if en_target_img:
-            st.image(en_target_img, width=350, caption="紅圈處為該母音的「舌面最高點」")
+            st.image(en_target_img, width=350, caption="紅圈處為該母音的「舌面最高點」預期位置")
         else:
             st.image(f"assets/{en_img_name}", width=350)
         
@@ -255,30 +255,66 @@ else:
 
     with col_practice:
         st.markdown("### 🎤 開始練習")
-        rec_en = mic_recorder(start_prompt="請點擊並發音", key=f"rec_en_{en_v['v_key']}")
+        # 取得本人對應的日文基準值
+        jp_key = en_v['jp_ref']
+        my_jp_ref = st.session_state.jp_data.get(jp_key)
         
-        if rec_en:
-            f_en = get_formants(rec_en['bytes'])
-            if len(f_en) >= 2:
-                f1, f2 = f_en[0], f_en[1]
-                
-                jp_key = en_v['jp_ref']
-                my_jp = st.session_state.jp_data.get(jp_key)
-                
-                res_img = draw_overlay(en_v, f1, f2, g_key, my_jp)
-                if res_img:
-                    st.image(res_img, width=400, caption="紅圈：目標位置 | 紅點：您的發音位置")
-                
-                st.metric("您的 F1 (高低)", f"{int(f1)} Hz")
-                st.metric("您的 F2 (前後)", f"{int(f2)} Hz")
-                
-                target_f1 = en_v['ref'][g_key]['f1']
-                if f1 - target_f1 > 70:
-                    st.warning("💡 提示：嘴巴可以再縮小一點點。")
-                elif target_f1 - f1 > 70:
-                    st.warning("💡 提示：嘴巴可以再張大一點點。")
-                else:
-                    st.success("⭐⭐⭐ 完美的高低位置！")
+        if not my_jp_ref:
+            st.error(f"找不到對應的日文基準音「{jp_key}」，請返回第一階段錄音。")
+        else:
+            ref_f1, ref_f2 = my_jp_ref # 這是學生本人的日文基準
+            
+            rec_en = mic_recorder(start_prompt="請點擊並發音", key=f"rec_en_{en_v['v_key']}")
+            
+            if rec_en:
+                f_en = get_formants(rec_en['bytes'])
+                if len(f_en) >= 2:
+                    f1, f2 = f_en[0], f_en[1]
+                    
+                    # 1. 繪製視覺回饋圖
+                    res_img = draw_overlay(en_v, f1, f2, g_key, my_jp_ref)
+                    if res_img:
+                        st.image(res_img, width=400, caption=f"對比您的日文「{jp_key}」基準位置")
+                    
+                    st.divider()
+                    st.subheader("📊 診斷建議")
+                    
+                    # 2. 計算與本人基準的差異
+                    f1_diff = f1 - ref_f1
+                    f2_diff = f2 - ref_f2
+                    
+                    # --- F1 (舌位高低) 指導 ---
+                    # 注意：F1 越高，舌位越低
+                    if abs(f1_diff) < 50:
+                        st.success("✅ **舌位高低：** 與您的日文基準非常接近，很標準！")
+                    elif f1_diff > 0:
+                        st.warning(f"❌ **舌位高低：** 您的 F1 比日文基準高出 {int(f1_diff)} Hz。建議：**舌頭再抬高一點點（嘴巴閉小一點）**。")
+                    else:
+                        st.warning(f"❌ **舌位高低：** 您的 F1 比日文基準低了 {int(abs(f1_diff))} Hz。建議：**嘴巴再張大一點點，舌位放低**。")
+
+                    # --- F2 (舌位前後) 指導 ---
+                    # 注意：F2 越高，舌位越前
+                    if abs(f2_diff) < 150:
+                        st.success("✅ **舌位前後：** 與您的日文基準非常接近，很標準！")
+                    elif f2_diff > 0:
+                        st.warning(f"❌ **舌位前後：** 您的 F2 比日文基準高出 {int(f2_diff)} Hz。建議：**舌頭稍稍往後縮一點**。")
+                    else:
+                        st.warning(f"❌ **舌位前後：** 您的 F2 比日文基準低了 {int(abs(f2_diff))} Hz。建議：**舌頭再往前推一點**。")
+
+                    # 3. 數值化顯示 (帶有 Delta 箭頭)
+                    # delta_color="inverse" 是因為 F1 越高代表舌位越低，邏輯上可能需要反向標示顏色
+                    m_col1, m_col2 = st.columns(2)
+                    m_col1.metric(
+                        label=f"您的 F1 (基準: 日文 {jp_key})", 
+                        value=f"{int(f1)} Hz", 
+                        delta=f"{int(f1_diff)} Hz",
+                        delta_color="normal" 
+                    )
+                    m_col2.metric(
+                        label=f"您的 F2 (基準: 日文 {jp_key})", 
+                        value=f"{int(f2)} Hz", 
+                        delta=f"{int(f2_diff)} Hz"
+                    )
 
     if st.button("⬅️ 返回日文校正階段"):
         st.session_state.stage = "JP_CALIB"
