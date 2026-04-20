@@ -106,34 +106,17 @@ VOWEL_MAP = {
         }
     },
     "ɑ (box/hot)": {
-        "prefix": "08",
-
-VOWEL_MAP = {
-    "i (eat/see)": {
-        "prefix": "01", "v_key": "high_i", "word": "eat", "t_suffix": "tougue",
-        "target_px": (196, 115),
+        "prefix": "08", 
+        "v_key": "script_a", 
+        "target_px": (241, 157), 
+        "jp_ref": "a",
+        "words": ["box", "hot"],
+        "t_suffix": "tongue",
         "ref": {
-            "female": {"f1": 310, "f2": 2790, "range_f1": (250, 400), "range_f2": (2300, 3200)},
-            "male": {"f1": 270, "f2": 2290, "range_f1": (220, 350), "range_f2": (1900, 2600)}
+            "female": {"f1": 850, "f2": 1220, "range_f1": (750, 1000), "range_f2": (1000, 1500)},
+            "male": {"f1": 730, "f2": 1090, "range_f1": (650, 850), "range_f2": (900, 1300)}
         }
-    },
-    "eɪ (ate/say)": {
-        "prefix": "02", "v_key": "ei", "word": "ate", "t_suffix": "tongue",
-        "target_px": (196, 122),
-        "ref": {
-            "female": {"f1": 480, "f2": 2400, "range_f1": (400, 550), "range_f2": (2000, 2600)},
-            "male": {"f1": 400, "f2": 2100, "range_f1": (350, 450), "range_f2": (1800, 2300)}
-        }
-    },
-    "ɛ (bed/egg)": {
-        "prefix": "03", "v_key": "epsilon", "word": "bed", "t_suffix": "tongue",
-        "target_px": (204, 136),
-        "ref": {
-            "female": {"f1": 610, "f2": 2330, "range_f1": (550, 700), "range_f2": (1800, 2400)},
-            "male": {"f1": 530, "f2": 1840, "range_f1": (450, 600), "range_f2": (1500, 2000)}
-        }
-    },
-
+    }
 }
 
 # --- 2. 初始化 Session State ---
