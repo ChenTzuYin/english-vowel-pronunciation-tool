@@ -209,14 +209,14 @@ def plot_voice_analysis(y, sr):
     # 実際にどの区間の音声が切り出されたかを確認します
     librosa.display.waveshow(y, sr=sr, ax=ax[0], color='blue')
     ax[0].set_title("Waveform", fontsize=12)
-    ax[0].set_ylabel("振幅")
+    ax[0].set_ylabel("Raw Amplitude (16-bit PCM)")
 
     # --- 2. スペクトログラム (Spectrogram) ---
     # 短時間フーリエ変換 (STFT) を行い、周波数分布を表示
     D = librosa.amplitude_to_db(np.abs(librosa.stft(y)), ref=np.max)
     img = librosa.display.specshow(D, sr=sr, x_axis='time', y_axis='hz', ax=ax[1], cmap='magma')
     ax[1].set_title("FFT Spectrogram", fontsize=12)
-    ax[1].set_ylabel("周波数 (Hz)")
+    ax[1].set_ylabel("Frequency (Hz)")
     ax[1].set_ylim(0, 8000)  # 母音分析に重要な 8kHz までを表示
     
     # カラーバーの追加（デシベル強度）
