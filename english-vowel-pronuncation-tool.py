@@ -198,6 +198,32 @@ def draw_final_jp_map(jp_data):
             draw_final.text((tx + dx, ty + dy), label_text, fill=(0, 0, 0, 255), font=font)
     return base_img
 
+def plot_voice_analysis(y, sr):
+    """
+    音声信号の波形とスペクトログラムを描画する関数
+    """
+    # グラフの作成 (2段構成：上が波形、下がスペクトログラム)
+    fig, ax = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+    
+    # --- 1. 波形図 (Waveform) ---
+    # 実際にどの区間の音声が切り出されたかを確認します
+    librosa.display.waveshow(y, sr=sr, ax=ax[0], color='blue')
+    ax[0].set_title("抽出された音声波形 (Waveform)", fontsize=12)
+    ax[0].set_ylabel("振幅")
+
+    # --- 2. スペクトログラム (Spectrogram) ---
+    # 短時間フーリエ変換 (STFT) を行い、周波数分布を表示
+    D = librosa.amplitude_to_db(np.abs(librosa.stft(y)), ref=np.max)
+    img = librosa.display.specshow(D, sr=sr, x_axis='time', y_axis='hz', ax=ax[1], cmap='magma')
+    ax[1].set_title("FFT スペクトログラム (Spectrogram)", fontsize=12)
+    ax[1].set_ylabel("周波数 (Hz)")
+    ax[1].set_ylim(0, 8000)  # 母音分析に重要な 8kHz までを表示
+    
+    # カラーバーの追加（デシベル強度）
+    fig.colorbar(img, ax=ax[1], format="%+2.0f dB")
+    plt.tight_layout()
+    return fig
+
 if 'stage' not in st.session_state:
     st.session_state.stage = "JP_CALIB"
 if 'jp_data' not in st.session_state:
@@ -337,6 +363,27 @@ else:
                     st.caption(f"💡 英語の標準平均値（F1:{target_f1}, F2:{target_f2}）との差を表示しています。")
                     st.caption(f"🎯 目標範囲: F1({avg_ref['range_f1'][0]}-{avg_ref['range_f1'][1]}), F2({avg_ref['range_f2'][0]}-{avg_ref['range_f2'][1]})")
 
+if rec_en:
+    f_en = get_formants(rec_en['bytes'])
+    if len(f_en) >= 2:
+        # 音声データの再読み込みと numpy 配列への変換
+        audio_data = AudioSegment.from_file(io.BytesIO(rec_en['bytes'])).set_channels(1).set_frame_rate(22050)
+        y_en = np.array(audio_data.get_array_of_samples(), dtype=np.float32) / 32768.0
+        sr_en = 22050
+
+        # --- 解析グラフの表示 ---
+        st.divider()
+        st.subheader("🎵 音声信号解析 (FFT Analysis)")
+        
+        # 波形とスペクトログラムを描画して表示
+        fig = plot_voice_analysis(y_en, sr_en)
+        st.pyplot(fig)
+        
+        # 既存の舌位置フィードバック画像を表示
+        res_img = draw_overlay(en_v, f_en[0], f_en[1], g_key)
+        if res_img:
+            st.image(res_img, width=400, caption="推定された舌の位置 (Red dot indicates estimated tongue position)")
+    
     if st.button("⬅️ 日本語の録音に戻る"):
         st.session_state.stage = "JP_CALIB"
         st.rerun()
