@@ -156,23 +156,26 @@ with st.sidebar:
 if st.session_state.stage == "JP_CALIB":
     st.subheader("第一階段：日文母音基準校正")
     
-    # --- 補回：進度顯示與導引 ---
-    progress = len(st.session_state.jp_data)
+    # 這裡直接計算當前字典內已有的 key 數量
+    current_keys = list(st.session_state.jp_data.keys())
+    progress = len(current_keys)
+    
     cols_status = st.columns([3, 1])
     with cols_status[0]:
         st.info("請錄製日文的「あいうえお」，系統將根據您的聲音自動調整對比基準。")
     with cols_status[1]:
+        # 這裡會即時反映數量
         st.metric("目前進度", f"{progress} / 5")
     
-    # 進度條視覺化
     st.progress(progress / 5)
 
-    selected_jp = st.selectbox("請選擇練習音：", list(JP_VOWELS.keys()))
-    jp_v = JP_VOWELS[selected_jp]
+
     
     col_j1, col_j2 = st.columns(2)
     
     with col_j1:
+        selected_jp = st.selectbox("請選擇練習音：", list(JP_VOWELS.keys()))
+        jp_v = JP_VOWELS[selected_jp]
         jp_target_img = draw_static_target(jp_v['ref_img'], jp_v['target_px'])
         if jp_target_img:
             st.image(jp_target_img, width=350, caption=f"日文「{selected_jp}」的舌面最高點預期位置")
@@ -181,7 +184,6 @@ if st.session_state.stage == "JP_CALIB":
         st.audio(f"assets/{jp_v['audio']}")
         
     with col_j2:
-        # 顯示該音是否已錄製過
         if jp_v['key'] in st.session_state.jp_data:
             st.success(f"✅ {selected_jp} 已錄製完成")
         
@@ -189,20 +191,22 @@ if st.session_state.stage == "JP_CALIB":
         if rec_j:
             f_list = get_formants(rec_j['bytes'])
             if len(f_list) >= 2:
+                # 存入資料後，立即更新進度數值
                 st.session_state.jp_data[jp_v['key']] = (f_list[0], f_list[1])
-                st.balloons() # 增加一點成就感
-                st.rerun() # 錄完自動刷新以更新進度
+                st.balloons()
+                st.rerun() # 強制重新跑一遍，讓下面判斷式抓到最新進度
     
     st.divider()
     
-    # --- 補回：解鎖英文挑戰按鈕 ---
-    if progress >= 5:
+    # 修改後的判斷邏輯：確保 5/5 時一定會顯示按鈕
+    if len(st.session_state.jp_data) >= 5:
         st.success("🎉 太棒了！您已完成所有日文基準校正。")
         if st.button("🔓 點此進入英文挑戰階段 ➔", type="primary", use_container_width=True):
             st.session_state.stage = "EN_LEVEL"
             st.rerun()
     else:
-        st.warning(f"還差 {5 - progress} 個音即可解鎖英文挑戰。")
+        st.warning(f"還差 {5 - len(st.session_state.jp_data)} 個音即可解鎖英文挑戰。")
+    
 
 
 # --- 第二階段：英文母音練習 ---
