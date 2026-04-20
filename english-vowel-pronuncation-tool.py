@@ -79,12 +79,13 @@ VOWEL_MAP = {
     }
 }
 
+
 JP_VOWELS = {
-    "あ (a)": {"key": "a", "ref_img": "08_script_a_full.png", "audio": "japanese_a.mp3"},
-    "い (i)": {"key": "i", "ref_img": "01_high_i_full.png", "audio": "japanese_i.mp3"},
-    "う (u)": {"key": "u", "ref_img": "05_high_u_full.png", "audio": "japanese_u.mp3"},
-    "え (e)": {"key": "e", "ref_img": "03_epsilon_full.png", "audio": "japanese_e.mp3"},
-    "お (o)": {"key": "o", "ref_img": "07_open_o_full.png", "audio": "japanese_o.mp3"},
+    "あ (a)": {"key": "a", "ref_img": "08_script_a_full.png", "audio": "japanese_a.mp3", "target_px": (241, 157)},
+    "い (i)": {"key": "i", "ref_img": "01_high_i_full.png", "audio": "japanese_i.mp3", "target_px": (196, 115)},
+    "う (u)": {"key": "u", "ref_img": "05_high_u_full.png", "audio": "japanese_u.mp3", "target_px": (247, 109)},
+    "え (e)": {"key": "e", "ref_img": "03_epsilon_full.png", "audio": "japanese_e.mp3", "target_px": (204, 136)},
+    "お (o)": {"key": "o", "ref_img": "07_open_o_full.png", "audio": "japanese_o.mp3", "target_px": (247, 146)},
 }
 
 # --- 3. 核心函式 ---
@@ -102,17 +103,17 @@ def get_formants(audio_bytes):
     formants = sorted(angz * (22050 / (2 * np.pi)))
     return [f for f in formants if f > 250]
 
-def draw_target_only(v_data):
-    """在示範圖上僅畫出目標紅圈"""
-    base_path = Path("assets") / f"{v_data['prefix']}_{v_data['v_key']}_full.png"
+def draw_static_target(image_filename, target_px):
+    """在指定圖檔的座標上畫出示範紅圈"""
+    base_path = Path("assets") / image_filename
     if not base_path.exists():
         return None
     
     img = Image.open(base_path).convert("RGBA")
     draw = ImageDraw.Draw(img)
-    tx, ty = v_data["target_px"]
+    tx, ty = target_px
     
-    # 畫目標圈 (紅圈)，並稍微加粗一點讓它更明顯
+    # 畫示範用紅圈
     draw.ellipse([tx-10, ty-10, tx+10, ty+10], outline="red", width=4)
     return img
 
@@ -169,8 +170,14 @@ if st.session_state.stage == "JP_CALIB":
     jp_v = JP_VOWELS[selected_jp]
     
     col_j1, col_j2 = st.columns(2)
-    with col_j1:
-        st.image(f"assets/{jp_v['ref_img']}", width=350, caption=f"日文 {selected_jp} 的參考位置")
+    
+   with col_j1:
+        # 使用新函式動態畫出紅圈
+        jp_target_img = draw_static_target(jp_v['ref_img'], jp_v['target_px'])
+        if jp_target_img:
+            st.image(jp_target_img, width=350, caption=f"日文「{selected_jp}」的舌面最高點預期位置")
+        else:
+            st.image(f"assets/{jp_v['ref_img']}", width=350)
         st.audio(f"assets/{jp_v['audio']}")
         
     with col_j2:
@@ -200,12 +207,15 @@ else:
     col_target, col_practice = st.columns(2)
     
     with col_target:
-        target_demo_img = draw_target_only(en_v)
-        if target_demo_img:
-            st.image(target_demo_img, width=350, caption="紅圈處為該母音的「舌面最高點」")
+        st.markdown(f"### 目標音：`/{en_v['v_key']}/`")
+        # 英文圖檔名規則：{prefix}_{v_key}_full.png
+        en_img_name = f"{en_v['prefix']}_{en_v['v_key']}_full.png"
+        en_target_img = draw_static_target(en_img_name, en_v['target_px'])
+        
+        if en_target_img:
+            st.image(en_target_img, width=350, caption="紅圈處為該母音的「舌面最高點」")
         else:
-            # 防錯：如果圖檔有問題則顯示原始路徑
-            st.image(f"assets/{en_v['prefix']}_{en_v['v_key']}_full.png", width=350)
+            st.image(f"assets/{en_img_name}", width=350)
         
         st.write("👂 **聽聽示範音檔：**")
         # ... (後續播放音檔的程式碼不變)
