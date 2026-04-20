@@ -303,25 +303,47 @@ else:
                         st.image(res_img, width=400, caption="赤い点が現在の舌の一番高いポイントを示します。")
                     
                     st.divider()
+                   # --- 診断アドバイス (Diagnostic Advice) ---
+                    st.divider()
                     st.subheader("📊 アドバイス")
                     
-                    # F1（舌の高さ）について
-                    f1_diff = f1 - ref_f1
-                    if  abs(f1_diff) < 50:
-                        st.success("✅ **舌の高さ：バッチリです！")
-                    elif f1_diff > 0:
-                        st.warning("❌ **舌の高さ：舌の位置が高すぎます。もう少し口を大きく開けてみましょう。")
+                    # ユーザー自身の日本語基準値を取得（Delta表示用）
+                    ref_jp_f1, ref_jp_f2 = my_jp_ref
+                    
+                    # 1. F1（舌の高さ）の判定：VOWEL_MAP の range_f1 に入っているか
+                    if avg_ref['range_f1'][0] <= f1 <= avg_ref['range_f1'][1]:
+                        st.success("✅ **舌の高さ：** バッチリです！理想的な範囲内です。")
+                    elif f1 < avg_ref['range_f1'][0]:
+                        # F1が低い ＝ 舌が高い
+                        st.warning("❌ **舌の高さ：** 舌の位置が高すぎます。もう少し口を大きく開けてみましょう。")
                     else:
-                        st.warning("❌ **舌の高さ：舌の位置が低すぎます。もう少し舌を持ち上げてみましょう。")
+                        # F1が高い ＝ 舌が低い
+                        st.warning("❌ **舌の高さ：** 舌の位置が低すぎます。もう少し舌を持ち上げてみましょう。")
 
-                    # F2（舌の前後）について
-                    f2_diff = f2 - ref_f2
-                    if abs(f2_diff) < 150:
-                        st.success("✅ **舌の前後：バッチリです！")
-                    elif f2_diff > 0:
-                        st.warning("❌ **舌の前後：舌が少し下がりすぎています。もう少し前に出してみましょう。")
+                    # 2. F2（舌の前後）の判定：VOWEL_MAP の range_f2 に入っているか
+                    if avg_ref['range_f2'][0] <= f2 <= avg_ref['range_f2'][1]:
+                        st.success("✅ **舌の前後：** バッチリです！理想的な位置です。")
+                    elif f2 < avg_ref['range_f2'][0]:
+                        # F2が低い ＝ 舌が後ろ
+                        st.warning("❌ **舌の前後：** 舌が後ろに下がりすぎています。もう少し前に出してみましょう。")
                     else:
-                        st.warning("❌ **舌の前後：舌が少し前に出すぎています。もう少し後ろに下げてください。")
+                        # F2が高い ＝ 舌が前
+                        st.warning("❌ **舌の前後：** 舌が前に出すぎています。もう少し後ろに下げてください。")
+
+                    # 3. 数値の表示（自分の日本語との差分を表示）
+                    m_col1, m_col2 = st.columns(2)
+                    m_col1.metric(
+                        label=f"あなたの F1 (基準: 日本語 /{jp_key}/)", 
+                        value=f"{int(f1)} Hz", 
+                        delta=f"{int(f1 - ref_jp_f1)} Hz",
+                        delta_color="normal"
+                    )
+                    m_col2.metric(
+                        label=f"あなたの F2 (基準: 日本語 /{jp_key}/)", 
+                        value=f"{int(f2)} Hz", 
+                        delta=f"{int(f2 - ref_jp_f2)} Hz"
+                    )
+                    st.caption(f"💡 目標範囲 (Hz): F1({avg_ref['range_f1'][0]}-{avg_ref['range_f1'][1]}), F2({avg_ref['range_f2'][0]}-{avg_ref['range_f2'][1]})")
 
             st.metric("現在の第一フォルマント（舌の高さ）", f"{round(f1,1)} Hz", f"{round(f1_diff,1)} Hz", delta_color="inverse")
             st.metric("現在の第二フォルマント（舌の前後）", f"{round(f2,1)} Hz", f"{round(f2_diff,1)} Hz")
