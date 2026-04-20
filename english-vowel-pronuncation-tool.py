@@ -271,7 +271,7 @@ else:
         st.markdown(f"### 目標音：`/{ipa_symbol}/`")
         img = draw_static_target(f"{en_v['prefix']}_{en_v['v_key']}_full.png", en_v['target_px'])
         if img: st.image(img, width=350, caption=f"/{ipa_symbol}/ 預期位置")
-        st.write("🔊 聽聽示範：")
+        st.write("▶️聽聽示範：")
         word_choice = st.radio("選擇單字：", en_v["words"], horizontal=True, key="en_word")
         st.audio(f"assets/{en_v['prefix']}_{en_v['v_key']}_{word_choice}.mp3")
     with col_practice:
