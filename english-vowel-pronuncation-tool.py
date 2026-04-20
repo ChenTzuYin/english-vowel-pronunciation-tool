@@ -287,11 +287,11 @@ else:
                     
                     # --- F1 (舌位高低) 診斷 ---
                     if avg_ref['range_f1'][0] <= f1 <= avg_ref['range_f1'][1]:
-                        st.success("✅ **舌位高低：** 完美！落在標準範圍內。")
+                        st.success("✅ **舌位高低：** 非常標準！落在標準範圍內。")
                     elif f1 < avg_ref['range_f1'][0]:
-                        st.warning(f"❌ **舌位高低：** 舌頭太高了。建議：**嘴巴張大一點，舌位再放低**。")
+                        st.warning(f"❌ **舌位高低：** 舌頭太高了。建議：**舌頭再放低一點或者嘴巴張大一點**。")
                     else:
-                        st.warning(f"❌ **舌位高低：** 舌頭太低了。建議：**舌頭向上抬起，嘴巴閉小一點**。")
+                        st.warning(f"❌ **舌位高低：** 舌頭太低了。建議：**舌頭再抬高一點或者嘴巴閉小一點**。")
 
                     # --- F2 (舌位前後) 診斷 ---
                     if avg_ref['range_f2'][0] <= f2 <= avg_ref['range_f2'][1]:
@@ -305,13 +305,13 @@ else:
                     ref_jp_f1, ref_jp_f2 = my_jp_ref
                     m_col1, m_col2 = st.columns(2)
                     m_col1.metric(
-                        label=f"您的 F1 (對比日文 {jp_key})", 
+                        label=f"您的 F1)", 
                         value=f"{int(f1)} Hz", 
                         delta=f"{int(f1 - ref_jp_f1)} Hz",
                         delta_color="normal"
                     )
                     m_col2.metric(
-                        label=f"您的 F2 (對比日文 {jp_key})", 
+                        label=f"您的 F2)", 
                         value=f"{int(f2)} Hz", 
                         delta=f"{int(f2 - ref_jp_f2)} Hz"
                     )
