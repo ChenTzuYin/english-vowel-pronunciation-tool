@@ -110,39 +110,68 @@ if st.session_state.stage == "JP_CALIB":
             st.session_state.stage = "EN_LEVEL"
             st.rerun()
 
-# --- 第二階段：英文母音練習 ---
+# --- 第二階段：英文母音挑戰 ---
 else:
     st.subheader("第二階段：英文母音挑戰")
-    selected_en = st.selectbox("挑戰英文母音：", list(VOWEL_MAP.keys()))
+    
+    # 在側邊欄或上方提供切換
+    selected_en = st.selectbox("請選擇要練習的英文母音：", list(VOWEL_MAP.keys()))
     en_v = VOWEL_MAP[selected_en]
     
-    # 取得對應的日文基準
+    # 取得對應的日文基準 (用於診斷或視覺對比)
     jp_key = en_v['jp_ref']
     my_jp_ref = st.session_state.jp_data.get(jp_key)
 
-    c1, c2 = st.columns(2)
-    with c1:
-        st.write(f"目標：/{en_v['v_key']}/")
-        st.image(f"assets/{en_v['prefix']}_{en_v['v_key']}_full.png", width=350)
+    # 建立兩欄：左邊放目標與示範，右邊放錄音與回饋
+    col_target, col_practice = st.columns(2)
     
-    with c2:
-        rec = mic_recorder(start_prompt="開始錄音 🎤", key='en_rec')
+    with col_target:
+        st.markdown(f"### 目標音：`/{en_v['v_key']}/`")
+        # 顯示目標發音圖
+        st.image(f"assets/{en_v['prefix']}_{en_v['v_key']}_full.png", 
+                 width=350, caption=f"標準 /{en_v['v_key']}/ 的舌位圖")
+        
+        # --- 補回：播放示範音檔 ---
+        st.write("👂 **聽聽看標準發音：**")
+        # 假設您的英文音檔命名規則為：01_high_i_eat.mp3 (對應 prefix_vkey_word.mp3)
+        audio_path = f"assets/{en_v['prefix']}_{en_v['v_key']}_{en_v.get('word', 'audio')}.mp3"
+        try:
+            st.audio(audio_path)
+        except:
+            st.warning(f"找不到音檔：{audio_path}")
+    
+    with col_practice:
+        st.markdown("### 2. 錄音練習")
+        rec = mic_recorder(
+            start_prompt="按住錄音 🎤 (請發長音)", 
+            stop_prompt="停止並分析 ⏹️", 
+            key=f'en_rec_{en_v["v_key"]}'
+        )
+        
         if rec:
             f_list = get_formants(rec['bytes'])
             if len(f_list) >= 2:
                 f1, f2 = f_list[0], f_list[1]
                 
-                # 計算與目標的差距 (此處需有各音位的標準 Ref)
-                # 這裡暫時以視覺顯示為主
-                st.subheader(f"評分：{get_stars(50, 50)}") # 範例
+                # 這裡可以根據您之前提供的 VOWEL_MAP['ref'] 進行分數計算
+                # 暫時用星星顯示效果
+                st.subheader(f"本次評分：{get_stars(50, 50)}") 
                 
-                # 繪製回饋圖
+                # 繪製回饋圖 (傳入學生的日文基準點 my_jp_ref)
                 res_img = draw_visual_feedback(en_v, f1, f2, my_jp_ref)
-                st.image(res_img, width=400, caption="紅圈：目標 | 紅點：您的發音")
+                st.image(res_img, width=400, caption="🔴 紅圈：目標位置 | 🔴 實心點：您的發音位置")
                 
-                st.metric("當前 F1", f"{int(f1)} Hz")
-                st.metric("當前 F2", f"{int(f2)} Hz")
+                # 顯示詳細數據
+                st.metric("當前 F1 (高低)", f"{int(f1)} Hz")
+                st.metric("當前 F2 (前後)", f"{int(f2)} Hz")
+                
+                # 如果有日文基準，可以給出更具體的建議
+                if my_jp_ref:
+                    jp_f1, jp_f2 = my_jp_ref
+                    st.info(f"💡 提示：比起您平常發日文「{jp_key}」音的時候，您的舌頭位置...")
 
-    if st.sidebar.button("返回校正階段"):
+    # 底部導航
+    st.divider()
+    if st.button("⬅️ 返回第一階段 (重新校正日文母音)"):
         st.session_state.stage = "JP_CALIB"
         st.rerun()
