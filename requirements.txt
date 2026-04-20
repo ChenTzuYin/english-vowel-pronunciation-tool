@@ -5,3 +5,5 @@ librosa
 numpy
 scipy
 Pillow
+PIL
+pathlib
