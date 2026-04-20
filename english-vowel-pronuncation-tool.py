@@ -255,15 +255,17 @@ else:
 
     with col_practice:
         st.markdown("### 🎤 開始練習")
-        # 取得本人對應的日文基準值
+        
+        # 取得本人對應的日文基準值 (用於計算 Delta)
         jp_key = en_v['jp_ref']
         my_jp_ref = st.session_state.jp_data.get(jp_key)
+        
+        # 取得該性別的英語平均參考範圍 (用於診斷建議)
+        avg_ref = en_v['ref'][g_key]
         
         if not my_jp_ref:
             st.error(f"找不到對應的日文基準音「{jp_key}」，請返回第一階段錄音。")
         else:
-            ref_f1, ref_f2 = my_jp_ref # 這是學生本人的日文基準
-            
             rec_en = mic_recorder(start_prompt="請點擊並發音", key=f"rec_en_{en_v['v_key']}")
             
             if rec_en:
@@ -271,7 +273,7 @@ else:
                 if len(f_en) >= 2:
                     f1, f2 = f_en[0], f_en[1]
                     
-                    # 1. 繪製視覺回饋圖
+                    # 1. 繪製視覺回饋圖 (傳入本人日文基準做參考點)
                     res_img = draw_overlay(en_v, f1, f2, g_key, my_jp_ref)
                     if res_img:
                         st.image(res_img, width=400, caption=f"對比您的日文「{jp_key}」基準位置")
@@ -279,42 +281,41 @@ else:
                     st.divider()
                     st.subheader("📊 診斷建議")
                     
-                    # 2. 計算與本人基準的差異
-                    f1_diff = f1 - ref_f1
-                    f2_diff = f2 - ref_f2
+                    # 2. 計算與「英語標準平均值」的差異 (而非單純比日文)
+                    f1_diff_avg = f1 - avg_ref['f1']
+                    f2_diff_avg = f2 - avg_ref['f2']
                     
-                    # --- F1 (舌位高低) 指導 ---
-                    # 注意：F1 越高，舌位越低
-                    if abs(f1_diff) < 50:
-                        st.success("✅ **舌位高低：** 非常標準！")
-                    elif f1_diff > 0:
-                        st.warning(f"❌ **舌位高低：** 您的 F1 比基準高出 {int(f1_diff)} Hz。建議：**舌面再抬高一點**。")
+                    # --- F1 (舌位高低) 診斷 ---
+                    if avg_ref['range_f1'][0] <= f1 <= avg_ref['range_f1'][1]:
+                        st.success("✅ **舌位高低：** 完美！落在標準範圍內。")
+                    elif f1 < avg_ref['range_f1'][0]:
+                        st.warning(f"❌ **舌位高低：** 舌頭太高了。建議：**嘴巴張大一點，舌位再放低**。")
                     else:
-                        st.warning(f"❌ **舌位高低：** 您的 F1 比基準低了 {int(abs(f1_diff))} Hz。建議：**舌面再放低一點**。")
+                        st.warning(f"❌ **舌位高低：** 舌頭太低了。建議：**舌頭向上抬起，嘴巴閉小一點**。")
 
-                    # --- F2 (舌位前後) 指導 ---
-                    # 注意：F2 越高，舌位越前
-                    if abs(f2_diff) < 150:
-                        st.success("✅ **舌位前後：** 非常標準！")
-                    elif f2_diff > 0:
-                        st.warning(f"❌ **舌位前後：** 您的 F2 比基準高出 {int(f2_diff)} Hz。建議：**舌頭稍稍往後縮一點**。")
+                    # --- F2 (舌位前後) 診斷 ---
+                    if avg_ref['range_f2'][0] <= f2 <= avg_ref['range_f2'][1]:
+                        st.success("✅ **舌位前後：** 非常標準！落在標準範圍內。")
+                    elif f2 < avg_ref['range_f2'][0]:
+                        st.warning(f"❌ **舌位前後：** 舌頭太靠後了。建議：**舌頭再往前推一點**。")
                     else:
-                        st.warning(f"❌ **舌位前後：** 您的 F2 比基準低了 {int(abs(f2_diff))} Hz。建議：**舌頭再往前推一點**。")
+                        st.warning(f"❌ **舌位前後：** 舌頭太靠前了。建議：**舌頭稍微向後縮一點**。")
 
-                    # 3. 數值化顯示 (帶有 Delta 箭頭)
-                    # delta_color="inverse" 是因為 F1 越高代表舌位越低，邏輯上可能需要反向標示顏色
+                    # 3. 數值化顯示 (顯示相對於「本人日文基準」的位移量，這對教學最有意義)
+                    ref_jp_f1, ref_jp_f2 = my_jp_ref
                     m_col1, m_col2 = st.columns(2)
                     m_col1.metric(
-                        label=f"您的 F1 (基準: {jp_key})", 
+                        label=f"您的 F1 (對比日文 {jp_key})", 
                         value=f"{int(f1)} Hz", 
-                        delta=f"{int(f1_diff)} Hz",
-                        delta_color="normal" 
+                        delta=f"{int(f1 - ref_jp_f1)} Hz",
+                        delta_color="normal"
                     )
                     m_col2.metric(
-                        label=f"您的 F2 (基準:  {jp_key})", 
+                        label=f"您的 F2 (對比日文 {jp_key})", 
                         value=f"{int(f2)} Hz", 
-                        delta=f"{int(f2_diff)} Hz"
+                        delta=f"{int(f2 - ref_jp_f2)} Hz"
                     )
+                    st.caption(f"💡 目標範圍 (Hz)：F1({avg_ref['range_f1'][0]}-{avg_ref['range_f1'][1]}), F2({avg_ref['range_f2'][0]}-{avg_ref['range_f2'][1]})")
 
     if st.button("⬅️ 返回日文校正階段"):
         st.session_state.stage = "JP_CALIB"
