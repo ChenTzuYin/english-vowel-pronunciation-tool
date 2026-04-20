@@ -274,7 +274,7 @@ else:
     col_target, col_practice = st.columns(2)
 
     with col_target:
-        selected_en = st.selectbox("好きな母音を選んでください：", list(VOWEL_MAP.keys()))
+        selected_en = st.selectbox("練習する母音を選んでください：", list(VOWEL_MAP.keys()))
         en_v = VOWEL_MAP[selected_en]
         
         ipa_symbol = selected_en.split(" ")[0]
@@ -285,42 +285,41 @@ else:
             st.image(img, width=350, caption=f"/{ipa_symbol}/ の舌の位置")
         
         st.write("好きな単語を選んで、▶️お手本を聞いてください：")
-        word_choice = st.radio("",en_v["words"], horizontal=True, key="en_word")
+        word_choice = st.radio("", en_v["words"], horizontal=True, key="en_word")
         st.audio(f"assets/{en_v['prefix']}_{en_v['v_key']}_{word_choice}.mp3")
 
     with col_practice:
-        st.markdown("### 🎙️録音してください")
+        st.markdown("### 🎙️ 録音してください")
         
         jp_key = en_v['jp_ref']
         my_jp_ref = st.session_state.jp_data.get(jp_key)
+        # 現在の性別設定（自動判定結果）に基づいた英語基準データを取得
         avg_ref = en_v['ref'][g_key]
         
         if not my_jp_ref:
-            st.error("日本語の母音地図が見つからないです。前のステップに戻ってください。")
+            st.error("日本語の母音データが見つかりません。ステップ1に戻ってください。")
         else:
-            rec_en = mic_recorder(start_prompt="🎙️クリックして録音", stop_prompt="⏹️録音を止める", key=f"rec_en_{en_v['v_key']}")
+            rec_en = mic_recorder(start_prompt="🎙️ クリックして録音", stop_prompt="⏹️ 録音を止める", key=f"rec_en_{en_v['v_key']}")
             
             if rec_en:
                 f_en = get_formants(rec_en['bytes'])
                 if len(f_en) >= 2:
                     f1, f2 = f_en[0], f_en[1]
+                    ref_jp_f1, ref_jp_f2 = my_jp_ref  # 日本語基準値を展開
                     
+                    # 1. ユーザーの発音位置を画像に描画
                     res_img = draw_overlay(en_v, f1, f2, g_key, my_jp_ref)
                     if res_img:
-                        st.image(res_img, width=400, caption="赤い点が現在の舌の一番高いポイントを示します。")
+                        st.image(res_img, width=400, caption="赤い点が現在の舌の位置（推定）です。")
                     
                     st.divider()
-                   # --- 診断アドバイス (Diagnostic Advice) ---
-                    st.divider()
                     st.subheader("📊 アドバイス")
-# --- 診断アドバイス (Diagnostic Advice) ---
-                    st.divider()                 
-                    st.subheader("📊 アドバイス")
-                                        
-                    # 性別を裏で判断
-                    gender_label = "男性" if g_key == "male" else "女性  
-                    avg_ref = en_v['ref'][g_key] 
                     
+                    # システムが裏で判定した性別を表示
+                    gender_display = "男性" if g_key == "male" else "女性"
+                    st.caption(f"📢 現在の判定：{gender_display}の標準範囲を使用中")
+                    
+                    # --- 診断アドバイス ---
                     # 1. F1（舌の高さ）の判定
                     if avg_ref['range_f1'][0] <= f1 <= avg_ref['range_f1'][1]:
                         st.success("✅ **舌の高さ：** バッチリです！理想的な範囲内です。")
@@ -336,22 +335,6 @@ else:
                         st.warning("❌ **舌の前後：** 舌が後ろに下がりすぎています。もう少し前に出してみましょう。")
                     else:
                         st.warning("❌ **舌の前後：** 舌が前に出すぎています。少し後ろに下げてみましょう。")
-
-                    # 3. 数値の表示（自分の日本語との差分を表示）
-                    m_col1, m_col2 = st.columns(2)
-                    m_col1.metric(
-                        label=f"あなたの F1 (基準: 日本語 /{jp_key}/)", 
-                        value=f"{int(f1)} Hz", 
-                        delta=f"{int(f1 - ref_jp_f1)} Hz",
-                        delta_color="normal"
-                    )
-                    m_col2.metric(
-                        label=f"あなたの F2 (基準: 日本語 /{jp_key}/)", 
-                        value=f"{int(f2)} Hz", 
-                        delta=f"{int(f2 - ref_jp_f2)} Hz"
-                    )
-                    st.caption(f"💡 目標範囲 (Hz): F1({avg_ref['range_f1'][0]}-{avg_ref['range_f1'][1]}), F2({avg_ref['range_f2'][0]}-{avg_ref['range_f2'][1]})")
-
             st.metric("現在の第一フォルマント（舌の高さ）", f"{round(f1,1)} Hz", f"{round(f1_diff,1)} Hz", delta_color="inverse")
             st.metric("現在の第二フォルマント（舌の前後）", f"{round(f2,1)} Hz", f"{round(f2_diff,1)} Hz")
 
