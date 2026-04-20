@@ -170,7 +170,7 @@ if 'g_key' not in st.session_state:
     st.session_state.g_key = "female" # 預設值
 
 # --- 5. UI 介面 ---
-st.title("👅 英語母音發音視覺回饋系統")
+st.title("英語母音發音視覺回饋系統")
 
 # 直接取得當前內部的 g_key
 g_key = st.session_state.g_key
@@ -271,7 +271,7 @@ else:
         st.markdown(f"### 目標音：`/{ipa_symbol}/`")
         img = draw_static_target(f"{en_v['prefix']}_{en_v['v_key']}_full.png", en_v['target_px'])
         if img: st.image(img, width=350, caption=f"/{ipa_symbol}/ 預期位置")
-        st.write("👂 聽聽示範：")
+        st.write("🔊 聽聽示範：")
         word_choice = st.radio("選擇單字：", en_v["words"], horizontal=True, key="en_word")
         st.audio(f"assets/{en_v['prefix']}_{en_v['v_key']}_{word_choice}.mp3")
     with col_practice:
@@ -289,7 +289,7 @@ else:
                     res_img = draw_overlay(en_v, f1, f2, g_key, my_jp_ref)
                     if res_img: st.image(res_img, width=400, caption="紅色紅點為您的位置")
                     st.divider()
-                    st.subheader("📊 診斷建議")
+                    st.subheader("建議")
                     if avg_ref['range_f1'][0] <= f1 <= avg_ref['range_f1'][1]: st.success("✅ 舌位高低標準！")
                     elif f1 < avg_ref['range_f1'][0]: st.warning("❌ 舌頭太高，嘴巴張大點。")
                     else: st.warning("❌ 舌頭太低，抬高舌頭。")
