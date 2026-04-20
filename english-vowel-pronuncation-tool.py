@@ -203,7 +203,7 @@ def plot_voice_analysis(y, sr):
     音声信号の波形とスペクトログラムを描画する関数
     """
     # グラフの作成 (2段構成：上が波形、下がスペクトログラム)
-    fig, ax = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+    fig, ax = plt.subplots(2, 1, figsize=(5, 4), sharex=True)
     
     # --- 1. 波形図 (Waveform) ---
     # 実際にどの区間の音声が切り出されたかを確認します
