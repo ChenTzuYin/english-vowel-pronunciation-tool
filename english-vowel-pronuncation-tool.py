@@ -21,12 +21,119 @@ JP_VOWELS = {
 
 # 英文母音設定 (沿用您之前的 VOWEL_MAP)
 VOWEL_MAP = {
-    "i (eat)": {"prefix": "01", "v_key": "high_i", "target_px": (196, 115), "jp_ref": "i"},
-    "ɛ (bed)": {"prefix": "03", "v_key": "epsilon", "target_px": (204, 136), "jp_ref": "e"},
-    "u (too)": {"prefix": "05", "v_key": "high_u", "target_px": (247, 109), "jp_ref": "u"},
-    "ɔ (dog)": {"prefix": "07", "v_key": "open_o", "target_px": (247, 146), "jp_ref": "o"},
-    "ɑ (box)": {"prefix": "08", "v_key": "script_a", "target_px": (241, 157), "jp_ref": "a"},
-    # 02, 04, 06 可依此類推
+    "i (eat/see)": {
+        "prefix": "01", 
+        "v_key": "high_i", 
+        "target_px": (196, 115), 
+        "jp_ref": "i",
+        "words": ["eat", "see"],
+        "t_suffix": "tougue",
+        "ref": {
+            "female": {"f1": 310, "f2": 2790, "range_f1": (250, 400), "range_f2": (2300, 3200)},
+            "male": {"f1": 270, "f2": 2290, "range_f1": (220, 350), "range_f2": (1900, 2600)}
+        }
+    },
+    "eɪ (ate/say)": {
+        "prefix": "02", 
+        "v_key": "ei", 
+        "target_px": (196, 122), 
+        "jp_ref": "e",
+        "words": ["ate", "say"],
+        "t_suffix": "tongue",
+        "ref": {
+            "female": {"f1": 480, "f2": 2400, "range_f1": (400, 550), "range_f2": (2000, 2600)},
+            "male": {"f1": 400, "f2": 2100, "range_f1": (350, 450), "range_f2": (1800, 2300)}
+        }
+    },
+    "ɛ (bed/egg)": {
+        "prefix": "03", 
+        "v_key": "epsilon", 
+        "target_px": (204, 136), 
+        "jp_ref": "e",
+        "words": ["bed", "egg"],
+        "t_suffix": "tongue",
+        "ref": {
+            "female": {"f1": 610, "f2": 2330, "range_f1": (550, 700), "range_f2": (1800, 2400)},
+            "male": {"f1": 530, "f2": 1840, "range_f1": (450, 600), "range_f2": (1500, 2000)}
+        }
+    },
+    "æ (bad/cat)": {
+        "prefix": "04", 
+        "v_key": "ash", 
+        "target_px": (214, 153), 
+        "jp_ref": "a",
+        "words": ["bad", "cat"],
+        "t_suffix": "tongue",
+        "ref": {
+            "female": {"f1": 860, "f2": 2050, "range_f1": (750, 1000), "range_f2": (1700, 2200)},
+            "male": {"f1": 660, "f2": 1720, "range_f1": (600, 800), "range_f2": (1400, 1900)}
+        }
+    },
+    "u (too/zoo)": {
+        "prefix": "05", 
+        "v_key": "high_u", 
+        "target_px": (247, 109), 
+        "jp_ref": "u",
+        "words": ["too", "zoo"],
+        "t_suffix": "tongue",
+        "ref": {
+            "female": {"f1": 370, "f2": 950, "range_f1": (300, 450), "range_f2": (700, 1200)},
+            "male": {"f1": 300, "f2": 870, "range_f1": (250, 380), "range_f2": (700, 1100)}
+        }
+    },
+    "oʊ (go/no)": {
+        "prefix": "06", 
+        "v_key": "ou", 
+        "target_px": (259, 134), 
+        "jp_ref": "o",
+        "words": ["go", "no"],
+        "t_suffix": "tongue",
+        "ref": {
+            "female": {"f1": 500, "f2": 1000, "range_f1": (450, 600), "range_f2": (800, 1300)},
+            "male": {"f1": 450, "f2": 900, "range_f1": (380, 520), "range_f2": (750, 1150)}
+        }
+    },
+    "ɔ (dog/law)": {
+        "prefix": "07", 
+        "v_key": "open_o", 
+        "target_px": (247, 146), 
+        "jp_ref": "o",
+        "words": ["dog", "law"],
+        "t_suffix": "tongue",
+        "ref": {
+            "female": {"f1": 700, "f2": 1100, "range_f1": (650, 800), "range_f2": (900, 1400)},
+            "male": {"f1": 570, "f2": 840, "range_f1": (520, 650), "range_f2": (750, 1000)}
+        }
+    },
+    "ɑ (box/hot)": {
+        "prefix": "08",
+
+VOWEL_MAP = {
+    "i (eat/see)": {
+        "prefix": "01", "v_key": "high_i", "word": "eat", "t_suffix": "tougue",
+        "target_px": (196, 115),
+        "ref": {
+            "female": {"f1": 310, "f2": 2790, "range_f1": (250, 400), "range_f2": (2300, 3200)},
+            "male": {"f1": 270, "f2": 2290, "range_f1": (220, 350), "range_f2": (1900, 2600)}
+        }
+    },
+    "eɪ (ate/say)": {
+        "prefix": "02", "v_key": "ei", "word": "ate", "t_suffix": "tongue",
+        "target_px": (196, 122),
+        "ref": {
+            "female": {"f1": 480, "f2": 2400, "range_f1": (400, 550), "range_f2": (2000, 2600)},
+            "male": {"f1": 400, "f2": 2100, "range_f1": (350, 450), "range_f2": (1800, 2300)}
+        }
+    },
+    "ɛ (bed/egg)": {
+        "prefix": "03", "v_key": "epsilon", "word": "bed", "t_suffix": "tongue",
+        "target_px": (204, 136),
+        "ref": {
+            "female": {"f1": 610, "f2": 2330, "range_f1": (550, 700), "range_f2": (1800, 2400)},
+            "male": {"f1": 530, "f2": 1840, "range_f1": (450, 600), "range_f2": (1500, 2000)}
+        }
+    },
+
 }
 
 # --- 2. 初始化 Session State ---
@@ -125,20 +232,28 @@ else:
     # 建立兩欄：左邊放目標與示範，右邊放錄音與回饋
     col_target, col_practice = st.columns(2)
     
-    with col_target:
-        st.markdown(f"### 目標音：`/{en_v['v_key']}/`")
-        # 顯示目標發音圖
-        st.image(f"assets/{en_v['prefix']}_{en_v['v_key']}_full.png", 
-                 width=350, caption=f"標準 /{en_v['v_key']}/ 的舌位圖")
-        
-        # --- 補回：播放示範音檔 ---
-        st.write("👂 **聽聽看標準發音：**")
-        # 假設您的英文音檔命名規則為：01_high_i_eat.mp3 (對應 prefix_vkey_word.mp3)
-        audio_path = f"assets/{en_v['prefix']}_{en_v['v_key']}_{en_v.get('word', 'audio')}.mp3"
-        try:
-            st.audio(audio_path)
-        except:
-            st.warning(f"找不到音檔：{audio_path}")
+with col_target:
+    st.markdown(f"### 目標音：`/{en_v['v_key']}/`")
+    st.image(f"assets/{en_v['prefix']}_{en_v['v_key']}_full.png", width=350)
+    
+    st.write("👂 **聽聽看示範單字：**")
+    
+    # 讓學生選擇想聽的單字 (例如：eat 或 see)
+    selected_word = st.radio(
+        "選擇示範字：", 
+        en_v['words'], 
+        horizontal=True, 
+        key=f"word_select_{en_v['v_key']}"
+    )
+    
+    # 組合正確的檔名：例如 assets/01_high_i_eat.mp3
+    audio_filename = f"{en_v['prefix']}_{en_v['v_key']}_{selected_word}.mp3"
+    audio_path = Path("assets") / audio_filename
+    
+    if audio_path.exists():
+        st.audio(str(audio_path))
+    else:
+        st.error(f"找不到音檔：{audio_filename}")
     
     with col_practice:
         st.markdown("### 2. 錄音練習")
