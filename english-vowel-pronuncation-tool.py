@@ -278,7 +278,7 @@ if st.session_state.stage == "JP_CALIB":
     if len(st.session_state.jp_data) >= 5:
         st.success("🎉 すべての母音が録音できました！")
         final_map_img = draw_final_jp_map(st.session_state.jp_data)
-        if final_map_img: st.image(final_map_img, width=600, caption="あなたの母音地図です")
+        if final_map_img: st.image(final_map_img, width=350, caption="あなたの母音地図です")
         if st.button("🔓 英語母音の練習へ進む ➔", type="primary", use_container_width=True):
             st.session_state.stage = "EN_LEVEL"
             st.rerun()
