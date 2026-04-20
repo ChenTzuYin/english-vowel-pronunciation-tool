@@ -278,7 +278,7 @@ else:
             st.image(img, width=350, caption=f"/{ipa_symbol}/ の舌の位置")
         
         st.write("好きな単語を選んで、▶️お手本を聞いてください：")
-        word_choice = st.radio(en_v["words"], horizontal=True, key="en_word")
+        word_choice = st.radio("",en_v["words"], horizontal=True, key="en_word")
         st.audio(f"assets/{en_v['prefix']}_{en_v['v_key']}_{word_choice}.mp3")
 
     with col_practice:
