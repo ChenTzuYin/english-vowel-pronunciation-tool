@@ -107,17 +107,61 @@ def draw_static_target(image_filename, target_px):
     draw.ellipse([tx-10, ty-10, tx+10, ty+10], outline="red", width=4)
     return img
 
-def draw_overlay(v_data, f1, f2, g_key, jp_base=None):
-    base_path = Path("assets") / f"{v_data['prefix']}_{v_data['v_key']}_full.png"
-    if not base_path.exists(): return None
-    img = Image.open(base_path).convert("RGBA")
+這是一個非常棒的想法！要讓學生完全脫離日文的干擾，我們必須把繪圖邏輯從「與日文基準的相對位移」改為「以英文目標為中心的絕對位移」。
+
+我將原本的 draw_overlay 函式進行了改寫。這段程式碼加入了**「磁吸效應（スナップ効果）」**：只要學生的發音落在合格範圍內，紅點就會直接鎖定在目標圓心，並將原本參考日文的參數移除。
+
+以下是改寫後的程式碼與日文註解：
+
+Python
+def draw_overlay(en_v, f1, f2, g_key):
+    """
+    英語の標準値を基準に、発音位置を画像上に描画する関数。
+    (日本語の基準値には依存せず、英語のターゲットへの近さのみを表示)
+    """
+    # 1. ターゲットの標準値と範囲を取得 (ターゲット音のF1, F2基準)
+    avg_ref = en_v['ref'][g_key]
+    target_f1 = avg_ref['f1']
+    target_f2 = avg_ref['f2']
+    range_f1 = avg_ref['range_f1']
+    range_f2 = avg_ref['range_f2']
+    
+    # 画像上のターゲット座標 (赤枠の中心点)
+    tx, ty = en_v['target_px']
+    
+    # 2. スナップ効果 (磁力効果) の計算
+    # もしユーザーの数値が合格範囲内なら、ズレ(diff)を0として扱い、中心に固定する
+    
+    # F1 (舌の高さ) の判定
+    if range_f1[0] <= f1 <= range_f1[1]:
+        diff_f1 = 0
+    else:
+        diff_f1 = f1 - target_f1
+        
+    # F2 (舌の前後) の判定
+    if range_f2[0] <= f2 <= range_f2[1]:
+        diff_f2 = 0
+    else:
+        diff_f2 = f2 - target_f2
+
+    # 3. 描画位置の計算
+    # 以前の my_jp_ref は使用せず、純粋にターゲットからの距離で計算
+    # 係数 (0.05, 0.1) は、画像上でのドットの動きの敏感さを調整します
+    st_x = tx - (diff_f2 * 0.05) 
+    st_y = ty + (diff_f1 * 0.1)
+
+    # --- 画像描画処理 (以下は以前のロジックを継承) ---
+    img_path = Path(f"img/{en_v['prefix']}_{en_v['v_key']}_{en_v['t_suffix']}.png")
+    if not img_path.exists():
+        return None
+        
+    img = Image.open(img_path).convert("RGB")
     draw = ImageDraw.Draw(img)
-    tx, ty = v_data["target_px"]
-    draw.ellipse([tx-8, ty-8, tx+8, ty+8], outline="red", width=3)
-    ref = v_data["ref"][g_key]
-    st_x = tx - ((f2 - ref["f2"]) * 0.08)
-    st_y = ty + ((f1 - ref["f1"]) * 0.15)
-    draw.ellipse([st_x-10, st_y-10, st_x+10, st_y+10], fill=(255, 0, 0, 180))
+    
+    # ユーザーの現在位置を赤い実線円で描画
+    r = 10
+    draw.ellipse([st_x - r, st_y - r, st_x + r, st_y + r], fill="red", outline="white", width=2)
+    
     return img
 
 def draw_final_jp_map(jp_data):
