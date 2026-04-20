@@ -109,40 +109,35 @@ def draw_static_target(image_filename, target_px):
 
 def draw_overlay(en_v, f1, f2, g_key):
     """
-    英語の標準値を基準に、発音位置を画像上に描画する関数。
-    (日本語の基準値には依存せず、英語のターゲットへの近さのみを表示)
+    英語の標準値を基準に、発音位置とターゲット（目標）を画像上に描画する関数。
     """
-    # 1. ターゲットの標準値と範囲を取得 (ターゲット音のF1, F2基準)
+    # 1. ターゲットの標準値と範囲を取得
     avg_ref = en_v['ref'][g_key]
     target_f1 = avg_ref['f1']
     target_f2 = avg_ref['f2']
     range_f1 = avg_ref['range_f1']
     range_f2 = avg_ref['range_f2']
     
-    # 画像上のターゲット座標 (赤枠の中心点)
+    # 画像上のターゲット座標 (目標地点の中心)
     tx, ty = en_v['target_px']
     
-    # 2. スナップ効果 (磁力効果) の計算
-    # もしユーザーの数値が合格範囲内なら、ズレ(diff)を0として扱い、中心に固定する
-    
-    # F1 (舌の高さ) の判定
+    # 2. スナップ効果（合格範囲内なら中心に吸い付く）
     if range_f1[0] <= f1 <= range_f1[1]:
         diff_f1 = 0
     else:
         diff_f1 = f1 - target_f1
         
-    # F2 (舌の前後) の判定
     if range_f2[0] <= f2 <= range_f2[1]:
         diff_f2 = 0
     else:
         diff_f2 = f2 - target_f2
 
-    # 3. 描画位置の計算
-    # 係数 (0.05, 0.1) は、画像上でのドットの動きの敏感さを調整します
+    # 3. ユーザーの描画位置を計算
     st_x = tx - (diff_f2 * 0.05) 
     st_y = ty + (diff_f1 * 0.1)
 
-    # --- 画像描画処理 (以下は以前のロジックを継承) ---
+    # --- 画像描画処理 ---
+    # 背景画像を読み込む
     img_path = Path(f"assets/{en_v['prefix']}_{en_v['v_key']}_full.png")
     if not img_path.exists():
         return None
@@ -150,11 +145,16 @@ def draw_overlay(en_v, f1, f2, g_key):
     img = Image.open(img_path).convert("RGB")
     draw = ImageDraw.Draw(img)
     
-    # ユーザーの現在位置を赤い実線円で描画
-    r = 10
-    draw.ellipse([st_x - r, st_y - r, st_x + r, st_y + r], fill="red", outline="white", width=2)
+    # A. ターゲット（目標値）を「中抜きの赤い円」で描画
+    target_r = 15  # 目標の円の大きさ
+    draw.ellipse([tx - target_r, ty - target_r, tx + target_r, ty + target_r], 
+                 outline="red", width=3)
+
+    # B. ユーザーの現在位置を「赤い塗りつぶし円」で描画
+    user_r = 10   # ユーザーの点の大きさ
+    draw.ellipse([st_x - user_r, st_y - user_r, st_x + user_r, st_y + user_r], 
+                 fill="red", outline="white", width=2)
     
-    return img
     return img
 
 def draw_final_jp_map(jp_data):
