@@ -284,7 +284,7 @@ else:
                 f_en = get_formants(rec_en['bytes'])
                 if len(f_en) >= 2:
                     f1, f2 = f_en[0], f_en[1]
-                    res_img = draw_overlay(en_v, f1, f2, g_key, my_jp_ref)
+                    res_img = draw_overlay(en_v, f1, f2, g_key)
                     if res_img:
                         st.image(res_img, width=400, caption="赤点は現在の舌の最も高い位置を推定したものです。")
                     
