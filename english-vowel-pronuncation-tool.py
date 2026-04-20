@@ -135,32 +135,21 @@ def draw_overlay(v_data, f1, f2, g_key, jp_base=None):
     return img
 
 def draw_final_jp_map(jp_data):
-    """
-    優化後的母音地圖：
-    1. 短引導線
-    2. 合適長度的半透明背景
-    3. 全黑、粗體、大字級文字
-    """
     base_img_name = "08_script_a_full.png" 
     base_path = Path("assets") / base_img_name
     if not base_path.exists(): return None
     
     base_img = Image.open(base_path).convert("RGBA")
-    
-    # 建立半透明圖層
+    # 準備一個統一的透明圖層
     overlay = Image.new('RGBA', base_img.size, (255, 255, 255, 0))
     draw_ov = ImageDraw.Draw(overlay)
     draw_base = ImageDraw.Draw(base_img)
     
-    # --- 字體設定 (建議在 assets 放入 Arial 或其他粗體字型) ---
     try:
-        # 字體大小設為 24，並嘗試載入粗體
         font = ImageFont.truetype("Arial Bold.ttf", 24)
     except:
-        # 若無字型檔則使用預設 (預設字型無法設定大小，建議上傳 ttf)
         font = ImageFont.load_default()
 
-    # 縮短位移距離 (線會變短)
     offsets = {
         "a": (-50, 40),   
         "i": (-60, -50), 
@@ -169,46 +158,43 @@ def draw_final_jp_map(jp_data):
         "o": (40, 40),    
     }
 
+    # 步驟 1: 先在底圖上把 5 個紅點全部畫好
+    for jp_label, v_info in JP_VOWELS.items():
+        jp_key = v_info['key']
+        if jp_key in jp_data:
+            tx, ty = v_info['target_px']
+            draw_base.ellipse([tx-12, ty-12, tx+12, ty+12], fill=(255, 0, 0, 255))
+
+    # 步驟 2: 繪製所有的線條與半透明方框到 overlay 上
     for jp_label, v_info in JP_VOWELS.items():
         jp_key = v_info['key']
         if jp_key in jp_data:
             f1, f2 = jp_data[jp_key]
             tx, ty = v_info['target_px']
-            
-            # 1. 畫紅點
-            draw_base.ellipse([tx-12, ty-12, tx+12, ty+12], fill=(255, 0, 0, 255))
-            
-            # 2. 準備文字內容
-            label_text = f"/{jp_key}/ ({int(f1)}, {int(f2)})  " # 後方加兩個空格控制方框長度
+            label_text = f"/{jp_key}/ ({int(f1)}, {int(f2)})  "
             dx, dy = offsets.get(jp_key, (30, 30))
             text_x, text_y = tx + dx, ty + dy
             
-            # 3. 計算文字尺寸以精確繪製背景框
-            # 使用 font.getbbox (Pillow 9.2.0+) 取得文字寬高
-            try:
-                left, top, right, bottom = draw_base.textbbox((text_x, text_y), label_text, font=font)
-                bbox = [left-5, top-2, right+5, bottom+2]
-            except:
-                # 舊版 Pillow 備案
-                bbox = [text_x-5, text_y-2, text_x+160, text_y+28]
-            
-            # 4. 在 Overlay 畫半透明背景方框
-            draw_ov.rectangle(bbox, fill=(255, 255, 255, 160))
-            
-            # 5. 在 Overlay 畫較短且細的引導線
+            # 計算 bbox
+            left, top, right, bottom = draw_base.textbbox((text_x, text_y), label_text, font=font)
+            # 畫半透明框
+            draw_ov.rectangle([left-5, top-2, right+5, bottom+2], fill=(255, 255, 255, 160))
+            # 畫引導線
             draw_ov.line([tx, ty, text_x, text_y], fill=(100, 100, 100, 150), width=2)
-            
-            # 6. **重要**：將 Overlay 合併到底圖後再畫字，確保文字在最頂層且不透色
-            base_img = Image.alpha_composite(base_img, overlay)
-            # 重置畫筆以在合併後的圖上寫字
-            draw_final = ImageDraw.Draw(base_img)
-            
-            # 7. 繪製全黑粗體文字
-            draw_final.text((text_x, text_y), label_text, fill=(0, 0, 0, 255), font=font)
-            
-            # 重置 overlay 避免重複疊加
-            overlay = Image.new('RGBA', base_img.size, (255, 255, 255, 0))
-            draw_ov = ImageDraw.Draw(overlay)
+
+    # 步驟 3: 統一合併一次圖層
+    base_img = Image.alpha_composite(base_img, overlay)
+    draw_final = ImageDraw.Draw(base_img)
+
+    # 步驟 4: 最後在最上層把 5 組文字寫上去
+    for jp_label, v_info in JP_VOWELS.items():
+        jp_key = v_info['key']
+        if jp_key in jp_data:
+            f1, f2 = jp_data[jp_key]
+            tx, ty = v_info['target_px']
+            label_text = f"/{jp_key}/ ({int(f1)}, {int(f2)})  "
+            dx, dy = offsets.get(jp_key, (30, 30))
+            draw_final.text((tx + dx, ty + dy), label_text, fill=(0, 0, 0, 255), font=font)
 
     return base_img
     
