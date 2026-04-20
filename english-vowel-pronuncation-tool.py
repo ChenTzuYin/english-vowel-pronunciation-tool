@@ -236,16 +236,20 @@ else:
     st.subheader("第二階段：挑戰英文母音")
      
     col_target, col_practice = st.columns(2)
-    
+
     with col_target:
         selected_en = st.selectbox("請選擇挑戰母音：", list(VOWEL_MAP.keys()))
         en_v = VOWEL_MAP[selected_en]
-        st.markdown(f"### 目標音：`/{en_v['v_key']}/`")
+        
+        # --- 顯示專業 IPA 音標 ---
+        ipa_symbol = selected_en.split(" ")[0]
+        st.markdown(f"### 目標音：`/{ipa_symbol}/`")
+        
         en_img_name = f"{en_v['prefix']}_{en_v['v_key']}_full.png"
         en_target_img = draw_static_target(en_img_name, en_v['target_px'])
         
         if en_target_img:
-            st.image(en_target_img, width=350, caption="紅圈處為該母音的「舌面最高點」預期位置")
+            st.image(en_target_img, width=350, caption=f"紅圈處為 /{ipa_symbol}/ 的舌面最高點預期位置")
         else:
             st.image(f"assets/{en_img_name}", width=350)
         
