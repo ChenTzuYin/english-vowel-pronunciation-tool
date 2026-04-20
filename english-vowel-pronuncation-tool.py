@@ -234,13 +234,12 @@ if st.session_state.stage == "JP_CALIB":
 # --- 第二階段：英文母音練習 ---
 else:
     st.subheader("第二階段：挑戰英文母音")
-    
-    selected_en = st.selectbox("請選擇挑戰母音：", list(VOWEL_MAP.keys()))
-    en_v = VOWEL_MAP[selected_en]
-    
+     
     col_target, col_practice = st.columns(2)
     
     with col_target:
+        selected_en = st.selectbox("請選擇挑戰母音：", list(VOWEL_MAP.keys()))
+        en_v = VOWEL_MAP[selected_en]
         st.markdown(f"### 目標音：`/{en_v['v_key']}/`")
         en_img_name = f"{en_v['prefix']}_{en_v['v_key']}_full.png"
         en_target_img = draw_static_target(en_img_name, en_v['target_px'])
