@@ -278,7 +278,7 @@ else:
         if not my_jp_ref:
             st.error("日本語の母音データが見つかりません。ステップ1に戻ってください。")
         else:
-            rec_en = mic_recorder(start_prompt="🎙️ クリ擊して錄音", stop_prompt="⏹️ 錄音を止める", key=f"rec_en_{en_v['v_key']}")
+            rec_en = mic_recorder(start_prompt="🎙️ クリックして錄音", stop_prompt="⏹️ 錄音を止める", key=f"rec_en_{en_v['v_key']}")
             if rec_en:
                 f_en = get_formants(rec_en['bytes'])
                 if len(f_en) >= 2:
