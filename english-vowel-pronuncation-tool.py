@@ -8,10 +8,11 @@ import numpy as np
 import scipy.signal
 from pathlib import Path
 
-# --- 1. 初始化設定 ---
-st.set_page_config(page_title="英語母音發音視覺回饋系統", layout="wide")
+# --- 1. 初期設定 (Initial Settings) ---
+st.set_page_config(page_title="英語母音発音視覚化システム", layout="wide")
 
-# --- 2. 資料結構整合 ---
+# --- 2. データ構造 (Data Structures) ---
+# 英語母音のターゲット座標とリファレンス値
 VOWEL_MAP = {
     "i (eat/see)": {
         "prefix": "01", "v_key": "high_i", "target_px": (196, 115), "jp_ref": "i",
@@ -79,6 +80,7 @@ VOWEL_MAP = {
     }
 }
 
+# 日本語母音の設定
 JP_VOWELS = {
     "あ (a)": {"key": "a", "ref_img": "08_script_a_full.png", "audio": "japanese_a.mp3", "target_px": (241, 157)},
     "い (i)": {"key": "i", "ref_img": "01_high_i_full.png", "audio": "japanese_i.mp3", "target_px": (196, 115)},
@@ -87,9 +89,10 @@ JP_VOWELS = {
     "お (o)": {"key": "o", "ref_img": "07_open_o_full.png", "audio": "japanese_o.mp3", "target_px": (247, 146)},
 }
 
-# --- 3. 核心函式 ---
+# --- 3. メイン関数 (Core Functions) ---
 
 def get_formants(audio_bytes):
+    """録音データを解析して第一・第二フォルマント(F1, F2)を取得します"""
     audio = AudioSegment.from_file(io.BytesIO(audio_bytes)).set_channels(1).set_frame_rate(22050)
     y = np.array(audio.get_array_of_samples(), dtype=np.float32) / 32768.0
     y = scipy.signal.lfilter([1, -0.63], [1], y)
@@ -101,6 +104,7 @@ def get_formants(audio_bytes):
     return [f for f in formants if f > 250]
 
 def draw_static_target(image_filename, target_px):
+    """お手本となる位置に赤い円を描画します"""
     base_path = Path("assets") / image_filename
     if not base_path.exists(): return None
     img = Image.open(base_path).convert("RGBA")
@@ -110,6 +114,7 @@ def draw_static_target(image_filename, target_px):
     return img
 
 def draw_overlay(v_data, f1, f2, g_key, jp_base=None):
+    """ユーザーの発音位置をリアルタイムで描画します"""
     base_path = Path("assets") / f"{v_data['prefix']}_{v_data['v_key']}_full.png"
     if not base_path.exists(): return None
     img = Image.open(base_path).convert("RGBA")
@@ -123,6 +128,7 @@ def draw_overlay(v_data, f1, f2, g_key, jp_base=None):
     return img
 
 def draw_final_jp_map(jp_data):
+    """日本語母音のパーソナルマップを作成します"""
     base_img_name = "08_script_a_full.png" 
     base_path = Path("assets") / base_img_name
     if not base_path.exists(): return None
@@ -132,12 +138,15 @@ def draw_final_jp_map(jp_data):
     draw_base = ImageDraw.Draw(base_img)
     try: font = ImageFont.truetype("Arial Bold.ttf", 24)
     except: font = ImageFont.load_default()
+    
     offsets = {"a": (-50, 40), "i": (-60, -50), "u": (40, -50), "e": (-70, 0), "o": (40, 40)}
+    
     for jp_label, v_info in JP_VOWELS.items():
         jp_key = v_info['key']
         if jp_key in jp_data:
             tx, ty = v_info['target_px']
             draw_base.ellipse([tx-12, ty-12, tx+12, ty+12], fill=(255, 0, 0, 255))
+            
     for jp_label, v_info in JP_VOWELS.items():
         jp_key = v_info['key']
         if jp_key in jp_data:
@@ -149,6 +158,7 @@ def draw_final_jp_map(jp_data):
             left, top, right, bottom = draw_base.textbbox((text_x, text_y), label_text, font=font)
             draw_ov.rectangle([left-5, top-2, right+5, bottom+2], fill=(255, 255, 255, 160))
             draw_ov.line([tx, ty, text_x, text_y], fill=(100, 100, 100, 150), width=2)
+            
     base_img = Image.alpha_composite(base_img, overlay)
     draw_final = ImageDraw.Draw(base_img)
     for jp_label, v_info in JP_VOWELS.items():
@@ -161,84 +171,76 @@ def draw_final_jp_map(jp_data):
             draw_final.text((tx + dx, ty + dy), label_text, fill=(0, 0, 0, 255), font=font)
     return base_img
 
-# --- 4. Session State 管理 ---
+# --- 4. セッション管理 (Session Management) ---
 if 'stage' not in st.session_state:
     st.session_state.stage = "JP_CALIB"
 if 'jp_data' not in st.session_state:
     st.session_state.jp_data = {}
 if 'g_key' not in st.session_state:
-    st.session_state.g_key = "female" # 預設值
+    st.session_state.g_key = "female"
 
-# --- 5. UI 介面 ---
-st.title("英語母音發音視覺回饋系統")
+# --- 5. ユーザーインターフェース (UI) ---
+st.title("発音ビジュアル・フィードバック")
 
-# 直接取得當前內部的 g_key
 g_key = st.session_state.g_key
 
-# --- 第一階段：日文母音校正 ---
+# --- ステージ1：日本語母音のキャリブレーション ---
 if st.session_state.stage == "JP_CALIB":
-    st.subheader("第一階段：日文母音基準校正")
+    st.subheader("ステップ1：日本語母音をどうやって発音するか？")
     
     current_keys = list(st.session_state.jp_data.keys())
     progress = len(current_keys)
     
     cols_status = st.columns([3, 1])
     with cols_status[0]:
-        st.info("請錄製日文的「あいうえお」，系統將根據您的聲音自動調整對比基準。")
+        st.info("順番で「あいうえお」を録音してください。")
     with cols_status[1]:
-        st.metric("目前進度", f"{progress} / 5")
+        st.metric("現在の進捗", f"{progress} / 5")
     st.progress(progress / 5)
 
     col_j1, col_j2 = st.columns(2)
     
     with col_j1:
-        selected_jp = st.selectbox("Step 1: 請選擇一種母音並聽取▶️下方示範音檔：", list(JP_VOWELS.keys()))
+        selected_jp = st.selectbox("1. 一つの母音を選んで、▶️お手本を聞いてください：", list(JP_VOWELS.keys()))
         jp_v = JP_VOWELS[selected_jp]
         img = draw_static_target(jp_v['ref_img'], jp_v['target_px'])
         if img:
-            st.image(img, width=350, caption=f"日文「{selected_jp}」預期位置")
+            st.image(img, width=350, caption=f"日本語「{selected_jp}」の舌の位置")
         st.audio(f"assets/{jp_v['audio']}")
         
     with col_j2:
-        # 1. 顯示該音「歷史已存」的數據
         if jp_v['key'] in st.session_state.jp_data:
             f1_saved, f2_saved = st.session_state.jp_data[jp_v['key']]
-            st.success(f"✅ {selected_jp} 已錄製完成")
+            st.success(f"✅ {selected_jp} は録音済みです")
             m_col1, m_col2 = st.columns(2)
-            m_col1.metric("基準 F1", f"{int(f1_saved)} Hz")
-            m_col2.metric("基準 F2", f"{int(f2_saved)} Hz")
+            m_col1.metric("第一フォルマント（舌の高さ）", f"{int(f1_saved)} Hz")
+            m_col2.metric("第二フォルマント（舌の前後）", f"{int(f2_saved)} Hz")
         
         st.write("---")
         
-        # 2. 錄音組件
         rec_j = mic_recorder(
-            start_prompt=f"Step 2: 🎙️錄製你的發音 {selected_jp}", 
-            stop_prompt="⏹️停止錄音並分析", 
+            start_prompt=f"2. {selected_jp} を録音する 🎙️", 
+            stop_prompt="録音を止めて解析する ⏹️", 
             key=f"rec_jp_{jp_v['key']}"
         )
         
-        # 3. 處理新錄音：顯示臨時結果與確認按鍵
         if rec_j:
             f_list = get_formants(rec_j['bytes'])
             if len(f_list) >= 2:
                 new_f1, new_f2 = f_list[0], f_list[1]
                 
-                # 只有當錄到的數據還沒被存入 jp_data 時，才顯示「剛分析完成」介面
-                # 判斷標準：如果 jp_data 裡沒資料，或資料跟剛錄到的不完全一樣
                 if jp_v['key'] not in st.session_state.jp_data or \
                    abs(st.session_state.jp_data[jp_v['key']][0] - new_f1) > 0.1:
                     
-                    st.write("✨ **剛分析完成：**")
+                    st.write("✨ **解析結果：**")
                     res_col1, res_col2 = st.columns(2)
-                    res_col1.metric("分析 F1", f"{int(new_f1)} Hz")
-                    res_col2.metric("分析 F2", f"{int(new_f2)} Hz")
+                    res_col1.metric("現在の第一フォルマント（舌の高さ）", f"{int(new_f1)} Hz")
+                    res_col2.metric("現在の第二フォルマント（舌の前後）", f"{int(new_f2)} Hz")
                     
-                    # 恢復按鍵：點擊後才正式寫入 session_state
-                    if st.button("確定並存入基準", key=f"save_{jp_v['key']}", type="primary"):
-                        # 這裡才真正執行存入動作
+                    if st.button("この値を基準として保存する", key=f"save_{jp_v['key']}", type="primary"):
                         st.session_state.jp_data[jp_v['key']] = (new_f1, new_f2)
                         
-                        # 自動性別判定邏輯
+                        # 自動性別判定（「い」のF1値を利用）
                         if jp_v['key'] == 'i':
                             st.session_state.g_key = "male" if new_f1 < 290 else "female"
                         
@@ -247,67 +249,74 @@ if st.session_state.stage == "JP_CALIB":
 
     st.divider()
     
-    # 底部解鎖邏輯與地圖顯示
     if len(st.session_state.jp_data) >= 5:
-        st.success("🎉 您已完成所有日文校正。")
+        st.success("🎉 すべての母音が録音できました！")
         final_map_img = draw_final_jp_map(st.session_state.jp_data)
         if final_map_img:
-            st.image(final_map_img, width=600, caption="個人化母音地圖")
+            st.image(final_map_img, width=600, caption="あなたの母音地図です")
         
-        if st.button("🔓 進入英文挑戰階段 ➔", type="primary", use_container_width=True):
+        if st.button("🔓 英語母音の練習へ進む ➔", type="primary", use_container_width=True):
             st.session_state.stage = "EN_LEVEL"
             st.rerun()
     else:
-        st.warning(f"還差 {5 - progress} 個音即可解鎖。")
+        st.warning(f"あと {5 - progress} 個の音を録音すると、英語母音の練習へアクセルできます。")
 
-# --- 第二階段：英文母音練習 ---
+# --- ステージ2：英語母音のトレーニング ---
 else:
-    st.subheader("第二階段：挑戰英文母音")
+    st.subheader("ステップ2：英語母音のトレーニング")
     col_target, col_practice = st.columns(2)
+
     with col_target:
-        selected_en = st.selectbox("請選擇挑戰母音：", list(VOWEL_MAP.keys()))
+        selected_en = st.selectbox("好きな母音を選んでください：", list(VOWEL_MAP.keys()))
         en_v = VOWEL_MAP[selected_en]
+        
         ipa_symbol = selected_en.split(" ")[0]
-        st.markdown(f"### 目標音：`/{ipa_symbol}/`")
+        st.markdown(f"### 今練習している母音は：`/{ipa_symbol}/`")
+        
         img = draw_static_target(f"{en_v['prefix']}_{en_v['v_key']}_full.png", en_v['target_px'])
-        if img: st.image(img, width=350, caption=f"/{ipa_symbol}/ 預期位置")
-        st.write("▶️聽聽示範：")
-        word_choice = st.radio("選擇單字：", en_v["words"], horizontal=True, key="en_word")
+        if img:
+            st.image(img, width=350, caption=f"/{ipa_symbol}/ の舌の位置")
+        
+        st.write("▶️ お手本を聞く：")
+        word_choice = st.radio("好きな単語を選ぶ：", en_v["words"], horizontal=True, key="en_word")
         st.audio(f"assets/{en_v['prefix']}_{en_v['v_key']}_{word_choice}.mp3")
+
     with col_practice:
-        st.markdown("### 🎙️ 開始練習")
+        st.markdown("### 🎙️録音してください")
+        
         jp_key = en_v['jp_ref']
         my_jp_ref = st.session_state.jp_data.get(jp_key)
         avg_ref = en_v['ref'][g_key]
-        if not my_jp_ref: st.error("請返回第一階段錄製日文音。")
+        
+        if not my_jp_ref:
+            st.error("日本語の母音地図が見つからないです。前のステップに戻ってください。")
         else:
-            rec_en = mic_recorder(start_prompt="請點擊並發音", key=f"rec_en_{en_v['v_key']}")
+            rec_en = mic_recorder(start_prompt="🎙️クリックして録音", start_stop=stop_prompt="⏹️録音を止める", ,key=f"rec_en_{en_v['v_key']}")
+            
             if rec_en:
                 f_en = get_formants(rec_en['bytes'])
                 if len(f_en) >= 2:
                     f1, f2 = f_en[0], f_en[1]
+                    
                     res_img = draw_overlay(en_v, f1, f2, g_key, my_jp_ref)
-                    if res_img: st.image(res_img, width=400, caption="紅色紅點為您的位置")
+                    if res_img:
+                        st.image(res_img, width=400, caption="赤い点が現在の舌の一番高いポイントを示します。")
+                    
                     st.divider()
-                    st.subheader("建議")
-                    if avg_ref['range_f1'][0] <= f1 <= avg_ref['range_f1'][1]: st.success("✅ 舌位高低標準！")
-                    elif f1 < avg_ref['range_f1'][0]: st.warning("❌ 舌頭太高，嘴巴張大點。")
-                    else: st.warning("❌ 舌頭太低，抬高舌頭。")
-                    if avg_ref['range_f2'][0] <= f2 <= avg_ref['range_f2'][1]: st.success("✅ 舌位前後標準！")
-                    elif f2 < avg_ref['range_f2'][0]: st.warning("❌ 舌頭太後，往前推一點。")
-                    else: st.warning("❌ 舌頭太前，稍微後縮。")
-                    ref_jp_f1, ref_jp_f2 = my_jp_ref
-                    m_col1, m_col2 = st.columns(2)
-                    m_col1.metric("您的 F1", f"{int(f1)} Hz", f"{int(f1 - ref_jp_f1)} Hz")
-                    m_col2.metric("您的 F2", f"{int(f2)} Hz", f"{int(f2 - ref_jp_f2)} Hz")
-    if st.button("⬅️ 返回日文校正階段"):
-        st.session_state.stage = "JP_CALIB"
-        st.rerun()
+                    st.subheader("📊 アドバイス")
+                    
+                    # F1（舌の高さ）について
+                    if avg_ref['range_f1'][0] <= f1 <= avg_ref['range_f1'][1]:
+                        st.success("✅ **バッチリです！")
+                    elif f1 < avg_ref['range_f1'][0]:
+                        st.warning("❌ **舌の位置が高すぎます。もう少し口を大きく開けてみましょう。")
+                    else:
+                        st.warning("❌ **舌の位置が低すぎます。もう少し舌を持ち上げてみましょう。")
 
-# --- 頁面底部：重新開始按鈕 ---
-st.divider()
-if st.button("🔄 重新開始全部流程 (清除所有數據)"):
-    st.session_state.stage = "JP_CALIB"
-    st.session_state.jp_data = {}
-    st.session_state.g_key = "female"
-    st.rerun()
+                    # F2（舌の前後）について
+                    if avg_ref['range_f2'][0] <= f2 <= avg_ref['range_f2'][1]:
+                        st.success("✅ **バッチリです！")
+                    elif f2 < avg_ref['range_f2'][0]:
+                        st.warning("❌ **舌が下がりすぎています。もう少し前に出してみましょう。")
+                    else:
+                        st.warning("❌ **舌が前に出すぎています。もう少し後に下げてください。")
