@@ -110,7 +110,7 @@ def draw_overlay_result(target_v_info, actual_v_info, st_f1, st_f2, g_key):
     
     draw = ImageDraw.Draw(base_img)
     tx, ty = target_v_info["target_px"]
-    draw.ellipse([tx-8, ty-8, tx+8, ty+8], outline="blue", width=3)
+    draw.ellipse([tx-8, ty-8, tx+8, ty+8], outline="red", width=3)
     
     ref_f1 = target_v_info["ref"][g_key]["f1"]
     ref_f2 = target_v_info["ref"][g_key]["f2"]
