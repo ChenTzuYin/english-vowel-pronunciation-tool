@@ -1,7 +1,7 @@
 import streamlit as st
 from streamlit_mic_recorder import mic_recorder
 from pydub import AudioSegment
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 import io
 import librosa
 import numpy as np
@@ -135,28 +135,38 @@ def draw_overlay(v_data, f1, f2, g_key, jp_base=None):
     return img
 
 def draw_final_jp_map(jp_data):
-    """繪製帶有半透明標籤背景與引導線的日文母音地圖"""
+    """
+    優化後的母音地圖：
+    1. 短引導線
+    2. 合適長度的半透明背景
+    3. 全黑、粗體、大字級文字
+    """
     base_img_name = "08_script_a_full.png" 
     base_path = Path("assets") / base_img_name
     if not base_path.exists(): return None
     
-    # 讀取底圖並確保是 RGBA
     base_img = Image.open(base_path).convert("RGBA")
     
-    # 建立一個與底圖一樣大的透明圖層，專門用來畫半透明的方塊與線條
+    # 建立半透明圖層
     overlay = Image.new('RGBA', base_img.size, (255, 255, 255, 0))
     draw_ov = ImageDraw.Draw(overlay)
-    
-    # 為了最後文字能完全清晰，我們在最原圖上畫文字
     draw_base = ImageDraw.Draw(base_img)
     
-    # 標籤避讓位移 (dx, dy)
+    # --- 字體設定 (建議在 assets 放入 Arial 或其他粗體字型) ---
+    try:
+        # 字體大小設為 24，並嘗試載入粗體
+        font = ImageFont.truetype("Arial Bold.ttf", 24)
+    except:
+        # 若無字型檔則使用預設 (預設字型無法設定大小，建議上傳 ttf)
+        font = ImageFont.load_default()
+
+    # 縮短位移距離 (線會變短)
     offsets = {
-        "a": (-70, 50),   # 往左下
-        "i": (-100, -50), # 往左上更遠處
-        "u": (40, -60),   # 往右上
-        "e": (-110, 10),  # 往左中
-        "o": (50, 50),    # 往右下
+        "a": (-50, 40),   
+        "i": (-60, -50), 
+        "u": (40, -50),   
+        "e": (-70, 0),    
+        "o": (40, 40),    
     }
 
     for jp_label, v_info in JP_VOWELS.items():
@@ -165,30 +175,42 @@ def draw_final_jp_map(jp_data):
             f1, f2 = jp_data[jp_key]
             tx, ty = v_info['target_px']
             
-            # 1. 在底圖畫紅色實心點 (不透明)
-            draw_base.ellipse([tx-10, ty-10, tx+10, ty+10], fill=(255, 0, 0, 255))
+            # 1. 畫紅點
+            draw_base.ellipse([tx-12, ty-12, tx+12, ty+12], fill=(255, 0, 0, 255))
             
-            # 2. 準備文字
-            label_text = f"/{jp_key}/ ({int(f1)}, {int(f2)})"
-            dx, dy = offsets.get(jp_key, (20, 20))
+            # 2. 準備文字內容
+            label_text = f"/{jp_key}/ ({int(f1)}, {int(f2)})  " # 後方加兩個空格控制方框長度
+            dx, dy = offsets.get(jp_key, (30, 30))
             text_x, text_y = tx + dx, ty + dy
             
-            # 3. 在 Overlay 圖層畫半透明背景方塊 (Alpha 設為 140)
-            text_w = len(label_text) * 8 # 稍微加寬一點
-            draw_ov.rectangle(
-                [text_x-5, text_y-2, text_x+text_w, text_y+18], 
-                fill=(255, 255, 255, 140) # 140/255 的透明度
-            )
+            # 3. 計算文字尺寸以精確繪製背景框
+            # 使用 font.getbbox (Pillow 9.2.0+) 取得文字寬高
+            try:
+                left, top, right, bottom = draw_base.textbbox((text_x, text_y), label_text, font=font)
+                bbox = [left-5, top-2, right+5, bottom+2]
+            except:
+                # 舊版 Pillow 備案
+                bbox = [text_x-5, text_y-2, text_x+160, text_y+28]
             
-            # 4. 在 Overlay 圖層畫半透明引導線
-            draw_ov.line([tx, ty, text_x, text_y], fill=(150, 150, 150, 100), width=2)
+            # 4. 在 Overlay 畫半透明背景方框
+            draw_ov.rectangle(bbox, fill=(255, 255, 255, 160))
             
-            # 5. 在底圖畫文字 (確保文字 100% 不透明，清晰好讀)
-            draw_base.text((text_x, text_y), label_text, fill="black")
+            # 5. 在 Overlay 畫較短且細的引導線
+            draw_ov.line([tx, ty, text_x, text_y], fill=(100, 100, 100, 150), width=2)
             
-    # 最後：將透明圖層 Alpha Composite 到底圖上
-    combined = Image.alpha_composite(base_img, overlay)
-    return combined
+            # 6. **重要**：將 Overlay 合併到底圖後再畫字，確保文字在最頂層且不透色
+            base_img = Image.alpha_composite(base_img, overlay)
+            # 重置畫筆以在合併後的圖上寫字
+            draw_final = ImageDraw.Draw(base_img)
+            
+            # 7. 繪製全黑粗體文字
+            draw_final.text((text_x, text_y), label_text, fill=(0, 0, 0, 255), font=font)
+            
+            # 重置 overlay 避免重複疊加
+            overlay = Image.new('RGBA', base_img.size, (255, 255, 255, 0))
+            draw_ov = ImageDraw.Draw(overlay)
+
+    return base_img
     
 # --- 4. Session State 管理 ---
 if 'stage' not in st.session_state:
