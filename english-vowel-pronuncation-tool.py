@@ -310,9 +310,8 @@ else:
                     # 1. ユーザーの発音位置を画像に描画
                     res_img = draw_overlay(en_v, f1, f2, g_key, my_jp_ref)
                     if res_img:
-                        st.image(res_img, width=400, caption="赤点は現在の舌の最も高い位置を推定したものです。")
+                        st.image(res_img, width=350, caption="赤点は現在の舌の最も高い位置を推定したものです。")
                     
-                    st.divider()
                    # --- 診断アドバイス---
                     st.subheader("📊 アドバイス")
                     
