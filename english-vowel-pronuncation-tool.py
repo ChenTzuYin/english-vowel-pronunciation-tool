@@ -365,7 +365,11 @@ else:
 
 
     
-
+# --- ナビゲーションボタン (Navigation) ---
+if st.session_state.stage == "EN_LEVEL":
+    if st.button("⬅️ 日本語の母音練習に戻る", key="back_to_jp"):
+        st.session_state.stage = "JP_CALIB"
+        st.rerun()
         
 # エラー回避: 'rec_en' が定義されており、かつデータが存在する場合のみ実行
 if 'rec_en' in locals() and rec_en:
@@ -380,7 +384,7 @@ if 'rec_en' in locals() and rec_en:
             sr_en = 22050
 
             st.divider()
-            st.subheader("🎵 音声信号解析 (FFT Analysis)")
+            st.subheader("🎵 参考：音声信号解析 (FFT Analysis)")
                 
             col_chart, col_empty = st.columns([1, 1]) # 1:1 分割，圖表佔左邊一半
     
@@ -391,8 +395,4 @@ if 'rec_en' in locals() and rec_en:
                 st.pyplot(fig, clear_figure=True)
 
 
-# --- ナビゲーションボタン (Navigation) ---
-if st.session_state.stage == "EN_LEVEL":
-    if st.button("⬅️ 日本語の録音に戻る", key="back_to_jp"):
-        st.session_state.stage = "JP_CALIB"
-        st.rerun()
+
