@@ -143,7 +143,7 @@ def draw_overlay(en_v, f1, f2, g_key):
     st_y = ty + (diff_f1 * 0.1)
 
     # --- 画像描画処理 (以下は以前のロジックを継承) ---
-    img_path = Path(f"assets/{en_v['prefix']}_{en_v['v_key']}_{en_v['t_suffix']}.png")
+    img_path = Path(f"assets/{en_v['prefix']}_{en_v['v_key']}_full.png")
     if not img_path.exists():
         return None
         
