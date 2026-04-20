@@ -257,7 +257,7 @@ if st.session_state.stage == "JP_CALIB":
             m_col1.metric("第一フォルマント（舌の高さ）", f"{int(f1_saved)} Hz")
             m_col2.metric("第二フォルマント（舌の前後）", f"{int(f2_saved)} Hz")
         st.write("---")
-        rec_j = mic_recorder(start_prompt=f"2. {selected_jp} を録音する 🎙️", stop_prompt="録音を止めて解析する ⏹️", key=f"rec_jp_{jp_v['key']}")
+        rec_j = mic_recorder(start_prompt=f"2. {selected_jp} を録音する 🎙️", stop_prompt="録音を止めて解析する ⏹️", key="fixed_jp_mic_recorder")
         if rec_j:
             f_list = get_formants(rec_j['bytes'])
             if len(f_list) >= 2:
