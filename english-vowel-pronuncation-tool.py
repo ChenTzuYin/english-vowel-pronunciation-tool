@@ -178,45 +178,87 @@ g_key = st.session_state.g_key
 # --- 第一階段：日文母音校正 ---
 if st.session_state.stage == "JP_CALIB":
     st.subheader("第一階段：日文母音基準校正")
+    
     current_keys = list(st.session_state.jp_data.keys())
     progress = len(current_keys)
+    
     cols_status = st.columns([3, 1])
-    with cols_status[0]: st.info("請錄製日文的「あいうえお」，系統將根據您的聲音自動調整對比基準。")
-    with cols_status[1]: st.metric("目前進度", f"{progress} / 5")
+    with cols_status[0]:
+        st.info("請錄製日文的「あいうえお」，系統將根據您的聲音自動調整對比基準。")
+    with cols_status[1]:
+        st.metric("目前進度", f"{progress} / 5")
     st.progress(progress / 5)
+
     col_j1, col_j2 = st.columns(2)
+    
     with col_j1:
-        selected_jp = st.selectbox("Step 1: 請選擇一種母音並聽取示範音檔：", list(JP_VOWELS.keys()))
+        selected_jp = st.selectbox("Step 1: 請選擇一種母音並聽取下方示範音檔：", list(JP_VOWELS.keys()))
         jp_v = JP_VOWELS[selected_jp]
         img = draw_static_target(jp_v['ref_img'], jp_v['target_px'])
-        if img: st.image(img, width=350, caption=f"日文「{selected_jp}」預期位置")
+        if img:
+            st.image(img, width=350, caption=f"日文「{selected_jp}」預期位置")
         st.audio(f"assets/{jp_v['audio']}")
+        
     with col_j2:
+        # 1. 顯示該音「歷史已存」的數據
         if jp_v['key'] in st.session_state.jp_data:
             f1_saved, f2_saved = st.session_state.jp_data[jp_v['key']]
-            st.success(f"✅ {selected_jp} 已錄製")
+            st.success(f"✅ {selected_jp} 已錄製完成")
             m_col1, m_col2 = st.columns(2)
             m_col1.metric("基準 F1", f"{int(f1_saved)} Hz")
             m_col2.metric("基準 F2", f"{int(f2_saved)} Hz")
-        rec_j = mic_recorder(start_prompt=f"Step 2: 錄製 {selected_jp}", key=f"rec_jp_{jp_v['key']}")
+        
+        st.write("---")
+        
+        # 2. 錄音組件
+        rec_j = mic_recorder(
+            start_prompt=f"Step 2: 錄製你的發音 {selected_jp}", 
+            stop_prompt="停止錄音並分析", 
+            key=f"rec_jp_{jp_v['key']}"
+        )
+        
+        # 3. 處理新錄音：顯示臨時結果與確認按鍵
         if rec_j:
             f_list = get_formants(rec_j['bytes'])
             if len(f_list) >= 2:
-                # 簡單自動性別校正邏輯：依據日文「い」的 F1 判斷
-                if jp_v['key'] == 'i':
-                    st.session_state.g_key = "male" if f_list[0] < 290 else "female"
-                st.session_state.jp_data[jp_v['key']] = (f_list[0], f_list[1])
-                st.balloons()
-                st.rerun()
+                new_f1, new_f2 = f_list[0], f_list[1]
+                
+                # 只有當錄到的數據還沒被存入 jp_data 時，才顯示「剛分析完成」介面
+                # 判斷標準：如果 jp_data 裡沒資料，或資料跟剛錄到的不完全一樣
+                if jp_v['key'] not in st.session_state.jp_data or \
+                   abs(st.session_state.jp_data[jp_v['key']][0] - new_f1) > 0.1:
+                    
+                    st.write("✨ **剛分析完成：**")
+                    res_col1, res_col2 = st.columns(2)
+                    res_col1.metric("分析 F1", f"{int(new_f1)} Hz")
+                    res_col2.metric("分析 F2", f"{int(new_f2)} Hz")
+                    
+                    # 恢復按鍵：點擊後才正式寫入 session_state
+                    if st.button("確定並存入基準", key=f"save_{jp_v['key']}", type="primary"):
+                        # 這裡才真正執行存入動作
+                        st.session_state.jp_data[jp_v['key']] = (new_f1, new_f2)
+                        
+                        # 自動性別判定邏輯
+                        if jp_v['key'] == 'i':
+                            st.session_state.g_key = "male" if new_f1 < 290 else "female"
+                        
+                        st.balloons()
+                        st.rerun()
+
     st.divider()
+    
+    # 底部解鎖邏輯與地圖顯示
     if len(st.session_state.jp_data) >= 5:
         st.success("🎉 您已完成所有日文校正。")
         final_map_img = draw_final_jp_map(st.session_state.jp_data)
-        if final_map_img: st.image(final_map_img, width=600, caption="個人化母音地圖")
+        if final_map_img:
+            st.image(final_map_img, width=600, caption="個人化母音地圖")
+        
         if st.button("🔓 進入英文挑戰階段 ➔", type="primary", use_container_width=True):
             st.session_state.stage = "EN_LEVEL"
             st.rerun()
-    else: st.warning(f"還差 {5 - progress} 個音即可解鎖。")
+    else:
+        st.warning(f"還差 {5 - progress} 個音即可解鎖。")
 
 # --- 第二階段：英文母音練習 ---
 else:
