@@ -174,7 +174,7 @@ if st.session_state.stage == "JP_CALIB":
     col_j1, col_j2 = st.columns(2)
     
     with col_j1:
-        selected_jp = st.selectbox("請選擇練習音：", list(JP_VOWELS.keys()))
+        selected_jp = st.selectbox("請選擇母音種類並聽取下方示範音檔：", list(JP_VOWELS.keys()))
         jp_v = JP_VOWELS[selected_jp]
         jp_target_img = draw_static_target(jp_v['ref_img'], jp_v['target_px'])
         if jp_target_img:
