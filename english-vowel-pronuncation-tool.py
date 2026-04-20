@@ -286,32 +286,32 @@ else:
                     # --- F1 (舌位高低) 指導 ---
                     # 注意：F1 越高，舌位越低
                     if abs(f1_diff) < 50:
-                        st.success("✅ **舌位高低：** 與您的日文基準非常接近，很標準！")
+                        st.success("✅ **舌位高低：** 非常標準！")
                     elif f1_diff > 0:
-                        st.warning(f"❌ **舌位高低：** 您的 F1 比日文基準高出 {int(f1_diff)} Hz。建議：**舌頭再抬高一點點（嘴巴閉小一點）**。")
+                        st.warning(f"❌ **舌位高低：** 您的 F1 比基準高出 {int(f1_diff)} Hz。建議：**舌面再抬高一點**。")
                     else:
-                        st.warning(f"❌ **舌位高低：** 您的 F1 比日文基準低了 {int(abs(f1_diff))} Hz。建議：**嘴巴再張大一點點，舌位放低**。")
+                        st.warning(f"❌ **舌位高低：** 您的 F1 比基準低了 {int(abs(f1_diff))} Hz。建議：**舌面再放低一點**。")
 
                     # --- F2 (舌位前後) 指導 ---
                     # 注意：F2 越高，舌位越前
                     if abs(f2_diff) < 150:
-                        st.success("✅ **舌位前後：** 與您的日文基準非常接近，很標準！")
+                        st.success("✅ **舌位前後：** 非常標準！")
                     elif f2_diff > 0:
-                        st.warning(f"❌ **舌位前後：** 您的 F2 比日文基準高出 {int(f2_diff)} Hz。建議：**舌頭稍稍往後縮一點**。")
+                        st.warning(f"❌ **舌位前後：** 您的 F2 比基準高出 {int(f2_diff)} Hz。建議：**舌頭稍稍往後縮一點**。")
                     else:
-                        st.warning(f"❌ **舌位前後：** 您的 F2 比日文基準低了 {int(abs(f2_diff))} Hz。建議：**舌頭再往前推一點**。")
+                        st.warning(f"❌ **舌位前後：** 您的 F2 比基準低了 {int(abs(f2_diff))} Hz。建議：**舌頭再往前推一點**。")
 
                     # 3. 數值化顯示 (帶有 Delta 箭頭)
                     # delta_color="inverse" 是因為 F1 越高代表舌位越低，邏輯上可能需要反向標示顏色
                     m_col1, m_col2 = st.columns(2)
                     m_col1.metric(
-                        label=f"您的 F1 (基準: 日文 {jp_key})", 
+                        label=f"您的 F1 (基準: {jp_key})", 
                         value=f"{int(f1)} Hz", 
                         delta=f"{int(f1_diff)} Hz",
                         delta_color="normal" 
                     )
                     m_col2.metric(
-                        label=f"您的 F2 (基準: 日文 {jp_key})", 
+                        label=f"您的 F2 (基準:  {jp_key})", 
                         value=f"{int(f2)} Hz", 
                         delta=f"{int(f2_diff)} Hz"
                     )
