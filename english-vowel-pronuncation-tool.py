@@ -138,6 +138,7 @@ def draw_overlay(en_v, f1, f2, g_key):
         diff_f2 = f2 - target_f2
 
     # 3. 描画位置の計算
+    # 以前の my_jp_ref は使用せず、純粋にターゲットからの距離で計算
     # 係数 (0.05, 0.1) は、画像上でのドットの動きの敏感さを調整します
     st_x = tx - (diff_f2 * 0.05) 
     st_y = ty + (diff_f1 * 0.1)
@@ -154,6 +155,7 @@ def draw_overlay(en_v, f1, f2, g_key):
     r = 10
     draw.ellipse([st_x - r, st_y - r, st_x + r, st_y + r], fill="red", outline="white", width=2)
     
+    return img
     return img
 
 def draw_final_jp_map(jp_data):
