@@ -159,12 +159,12 @@ if st.session_state.stage == "JP_CALIB":
     current_keys = list(st.session_state.jp_data.keys())
     progress = len(current_keys)
     
+    # UI 狀態顯示
     cols_status = st.columns([3, 1])
     with cols_status[0]:
         st.info("請錄製日文的「あいうえお」，系統將根據您的聲音自動調整對比基準。")
     with cols_status[1]:
         st.metric("目前進度", f"{progress} / 5")
-    
     st.progress(progress / 5)
 
     col_j1, col_j2 = st.columns(2)
@@ -180,43 +180,47 @@ if st.session_state.stage == "JP_CALIB":
         st.audio(f"assets/{jp_v['audio']}")
         
     with col_j2:
-        # 如果該音已經錄過，顯示之前存好的 F1/F2
+        # 1. 顯示該音「歷史已存」的數據
         if jp_v['key'] in st.session_state.jp_data:
             f1_saved, f2_saved = st.session_state.jp_data[jp_v['key']]
             st.success(f"✅ {selected_jp} 已錄製完成")
-            
-            # 使用 st.metric 漂亮地顯示已存數值
             m_col1, m_col2 = st.columns(2)
             m_col1.metric("基準 F1", f"{int(f1_saved)} Hz")
             m_col2.metric("基準 F2", f"{int(f2_saved)} Hz")
         
         st.write("---")
+        
+        # 2. 錄音組件
         rec_j = mic_recorder(
             start_prompt=f"Step 2: 錄製你的發音 {selected_jp}", 
             stop_prompt="停止錄音並分析", 
             key=f"rec_jp_{jp_v['key']}"
         )
         
+        # 3. 處理新錄音（加入一個簡單判斷，避免重複顯示）
         if rec_j:
             f_list = get_formants(rec_j['bytes'])
             if len(f_list) >= 2:
-                # 存入資料
-                st.session_state.jp_data[jp_v['key']] = (f_list[0], f_list[1])
-                # 這裡不需要 rerun，先顯示剛錄好的數據給學生看
-                st.toast(f"已記錄 {selected_jp} 的特徵！")
+                new_f1, new_f2 = f_list[0], f_list[1]
                 
-                # 顯示即時回饋
-                st.write("✨ **剛剛錄製的結果：**")
-                res_col1, res_col2 = st.columns(2)
-                res_col1.metric("當前 F1", f"{int(f_list[0])} Hz")
-                res_col2.metric("當前 F2", f"{int(f_list[1])} Hz")
-                
-                if st.button("確認並繼續", key=f"confirm_{jp_v['key']}"):
-                    st.balloons()
-                    st.rerun()
+                # 如果目前的數值跟已存數值不同，或者根本還沒存過，才顯示「剛剛錄製」
+                # 這樣按下「確認並繼續」刷新後，因為 jp_data 已經更新，這段就不會再跑出來
+                if jp_v['key'] not in st.session_state.jp_data or \
+                   abs(st.session_state.jp_data[jp_v['key']][0] - new_f1) > 0.1:
+                    
+                    st.write("✨ **剛分析完成：**")
+                    res_col1, res_col2 = st.columns(2)
+                    res_col1.metric("分析 F1", f"{int(new_f1)} Hz")
+                    res_col2.metric("分析 F2", f"{int(new_f2)} Hz")
+                    
+                    if st.button("確認並存入基準", key=f"save_{jp_v['key']}", type="primary"):
+                        st.session_state.jp_data[jp_v['key']] = (new_f1, new_f2)
+                        st.balloons()
+                        st.rerun()
 
     st.divider()
     
+    # 底部解鎖邏輯
     if len(st.session_state.jp_data) >= 5:
         st.success("🎉 太棒了！您已完成所有日文基準校正。")
         if st.button("🔓 點此進入英文挑戰階段 ➔", type="primary", use_container_width=True):
