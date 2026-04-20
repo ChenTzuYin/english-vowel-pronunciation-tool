@@ -135,55 +135,53 @@ def draw_overlay(v_data, f1, f2, g_key, jp_base=None):
     return img
 
 def draw_final_jp_map(jp_data):
-    """在同一張圖上繪製所有已錄製的日文母音點，並標註 F1/F2"""
-    # 選定一張中性的基礎圖作為背景 (例如 /ɑ/)
+    """繪製避讓文字後的日文母音地圖"""
     base_img_name = "08_script_a_full.png" 
     base_path = Path("assets") / base_img_name
-    
-    if not base_path.exists():
-        return None
+    if not base_path.exists(): return None
     
     img = Image.open(base_path).convert("RGBA")
     draw = ImageDraw.Draw(img)
     
-    # 遍歷所有已錄製的日文音
-    # JP_VOWELS 裡面有 target_px, VOWEL_MAP 裡面有男女平均 ref
+    # 定義標籤的相對位移方向 (避免重疊)
+    # 邏輯：高母音(i, u)往上/往外，低母音(a, o)往下
+    offsets = {
+        "a": (-60, 40),   # 往左下
+        "i": (-80, -40),  # 往左上
+        "u": (30, -50),   # 往右上
+        "e": (-90, 0),    # 正左
+        "o": (30, 40),    # 往右下
+    }
+
     for jp_label, v_info in JP_VOWELS.items():
         jp_key = v_info['key']
-        
-        # 檢查該音是否已錄製
         if jp_key in jp_data:
-            f1_saved, f2_saved = jp_data[jp_key]
-            
-            # 1. 取得目標座標 (作為繪製起點)
+            f1, f2 = jp_data[jp_key]
             tx, ty = v_info['target_px']
             
-            # --- 關鍵：這裡我們直接使用目標座標繪製，不進行 F1/F2 位移計算 ---
-            # 因為這張圖是用來顯示「基準位置」，而非「對比位置」。
-            # 標註 F1/F2 數值即可。
+            # 1. 畫紅點
+            draw.ellipse([tx-10, ty-10, tx+10, ty+10], fill=(255, 0, 0, 220))
             
-            # 2. 繪製紅色實心點
-            st_x, st_y = tx, ty
-            draw.ellipse([st_x-12, st_y-12, st_x+12, st_y+12], fill=(255, 0, 0, 200))
+            # 2. 準備文字：使用羅馬字避免亂碼，格式：/i/ (300, 2900)
+            label_text = f"/{jp_key}/ ({int(f1)}, {int(f2)})"
             
-            # 3. 準備標註文字
-            en_char = jp_label.split(" ")[1].strip("()") # 提取 (a) 中的 a
-            jp_char = jp_label.split(" ")[0] # 提取 あ
+            # 3. 計算偏移位置
+            dx, dy = offsets.get(jp_key, (20, 20))
+            text_x, text_y = tx + dx, ty + dy
             
-            # 格式化文字: あ/a\n(F1, F2)
-            label_text = f"{jp_char}/{en_char}\n({int(f1_saved)}, {int(f2_saved)})"
+            # 4. 繪製文字背景 (白色小方塊，增加辨識度)
+            # 這裡計算文字大約寬度，畫一個底色
+            text_w = len(label_text) * 7 
+            draw.rectangle([text_x-2, text_y-2, text_x+text_w, text_y+15], fill=(255, 255, 255, 180))
             
-            # 4. 計算文字位置 (稍微偏移，避免擋到點)
-            # 根據點的位置動態調整文字方向 (選配，這裡先統一往右下偏移)
-            text_x = st_x + 15
-            text_y = st_y + 15
-            
-            # 5. 繪製文字 (加入白色外框，增加清晰度)
-            # Pillow 繪製文字較複雜，這裡使用簡單的黑字
-            # 如果需要更美觀，建議引入 ImageFont
+            # 5. 繪製文字 (黑色)
             draw.text((text_x, text_y), label_text, fill="black")
             
+            # 6. (進階) 畫一條細線連接紅點與文字
+            draw.line([tx, ty, text_x, text_y], fill=(100, 100, 100, 100), width=1)
+            
     return img
+    
 # --- 4. Session State 管理 ---
 if 'stage' not in st.session_state:
     st.session_state.stage = "JP_CALIB"
