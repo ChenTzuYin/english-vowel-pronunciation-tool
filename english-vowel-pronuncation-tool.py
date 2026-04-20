@@ -79,7 +79,6 @@ VOWEL_MAP = {
     }
 }
 
-
 JP_VOWELS = {
     "あ (a)": {"key": "a", "ref_img": "08_script_a_full.png", "audio": "japanese_a.mp3", "target_px": (241, 157)},
     "い (i)": {"key": "i", "ref_img": "01_high_i_full.png", "audio": "japanese_i.mp3", "target_px": (196, 115)},
@@ -113,7 +112,6 @@ def draw_static_target(image_filename, target_px):
     draw = ImageDraw.Draw(img)
     tx, ty = target_px
     
-    # 畫示範用紅圈
     draw.ellipse([tx-10, ty-10, tx+10, ty+10], outline="red", width=4)
     return img
 
@@ -127,19 +125,13 @@ def draw_overlay(v_data, f1, f2, g_key, jp_base=None):
     draw = ImageDraw.Draw(img)
     tx, ty = v_data["target_px"]
     
-    # 畫目標圈 (紅圈)
     draw.ellipse([tx-8, ty-8, tx+8, ty+8], outline="red", width=3)
     
-    # 計算學生發音點 (紅點)
     ref = v_data["ref"][g_key]
     st_x = tx - ((f2 - ref["f2"]) * 0.08)
     st_y = ty + ((f1 - ref["f1"]) * 0.15)
     draw.ellipse([st_x-10, st_y-10, st_x+10, st_y+10], fill=(255, 0, 0, 180))
     
-    # 如果有日文基準點，可以畫一個灰色淡點作為對比 (選配)
-    if jp_base:
-        pass 
-        
     return img
 
 # --- 4. Session State 管理 ---
@@ -151,7 +143,6 @@ if 'jp_data' not in st.session_state:
 # --- 5. UI 介面 ---
 st.title("👅 英語母音發音視覺回饋系統")
 
-# 側邊欄設定
 with st.sidebar:
     st.header("⚙️ 設定")
     gender = st.radio("您的性別：", ("女性 / 小孩", "男性"))
@@ -171,8 +162,7 @@ if st.session_state.stage == "JP_CALIB":
     
     col_j1, col_j2 = st.columns(2)
     
-   with col_j1:
-        # 使用新函式動態畫出紅圈
+    with col_j1:
         jp_target_img = draw_static_target(jp_v['ref_img'], jp_v['target_px'])
         if jp_target_img:
             st.image(jp_target_img, width=350, caption=f"日文「{selected_jp}」的舌面最高點預期位置")
@@ -191,69 +181,3 @@ if st.session_state.stage == "JP_CALIB":
     
     st.divider()
     progress = len(st.session_state.jp_data)
-    st.write(f"目前進度：{progress} / 5")
-    if progress >= 5:
-        if st.button("完成校正，進入英文挑戰 ➔"):
-            st.session_state.stage = "EN_LEVEL"
-            st.rerun()
-
-# --- 第二階段：英文母音練習 ---
-else:
-    st.subheader("第二階段：挑戰英文母音")
-    
-    selected_en = st.selectbox("請選擇挑戰母音：", list(VOWEL_MAP.keys()))
-    en_v = VOWEL_MAP[selected_en]
-    
-    col_target, col_practice = st.columns(2)
-    
-    with col_target:
-        st.markdown(f"### 目標音：`/{en_v['v_key']}/`")
-        # 英文圖檔名規則：{prefix}_{v_key}_full.png
-        en_img_name = f"{en_v['prefix']}_{en_v['v_key']}_full.png"
-        en_target_img = draw_static_target(en_img_name, en_v['target_px'])
-        
-        if en_target_img:
-            st.image(en_target_img, width=350, caption="紅圈處為該母音的「舌面最高點」")
-        else:
-            st.image(f"assets/{en_img_name}", width=350)
-        
-        st.write("👂 **聽聽示範音檔：**")
-        # ... (後續播放音檔的程式碼不變)
-        
-        st.write("👂 **聽聽示範音檔：**")
-        word_choice = st.radio("選擇單字：", en_v["words"], horizontal=True, key="en_word")
-        st.audio(f"assets/{en_v['prefix']}_{en_v['v_key']}_{word_choice}.mp3")
-
-    with col_practice:
-        st.markdown("### 🎤 開始練習")
-        rec_en = mic_recorder(start_prompt="請點擊並發音", key=f"rec_en_{en_v['v_key']}")
-        
-        if rec_en:
-            f_en = get_formants(rec_en['bytes'])
-            if len(f_en) >= 2:
-                f1, f2 = f_en[0], f_en[1]
-                
-                # 視覺回饋
-                jp_key = en_v['jp_ref']
-                my_jp = st.session_state.jp_data.get(jp_key)
-                
-                res_img = draw_overlay(en_v, f1, f2, g_key, my_jp)
-                if res_img:
-                    st.image(res_img, width=400, caption="紅圈：目標位置 | 紅點：您的發音位置")
-                
-                # 診斷數據
-                st.metric("您的 F1 (高低)", f"{int(f1)} Hz")
-                st.metric("您的 F2 (前後)", f"{int(f2)} Hz")
-                
-                # 簡單診斷建議
-                target_f1 = en_v['ref'][g_key]['f1']
-                if f1 - target_f1 > 70:
-                    st.warning("💡 提示：嘴巴可以再縮小一點點。")
-                elif target_f1 - f1 > 70:
-                    st.warning("💡 提示：嘴巴可以再張大一點點。")
-                else:
-                    st.success("⭐⭐⭐ 完美的高低位置！")
-
-    if st.button("⬅️ 返回日文校正階段"):
-        st.session_state.stage = "JP_CALIB"
-        st.rerun()
