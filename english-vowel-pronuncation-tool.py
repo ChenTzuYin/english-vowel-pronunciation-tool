@@ -134,6 +134,56 @@ def draw_overlay(v_data, f1, f2, g_key, jp_base=None):
     
     return img
 
+def draw_final_jp_map(jp_data):
+    """在同一張圖上繪製所有已錄製的日文母音點，並標註 F1/F2"""
+    # 選定一張中性的基礎圖作為背景 (例如 /ɑ/)
+    base_img_name = "08_script_a_full.png" 
+    base_path = Path("assets") / base_img_name
+    
+    if not base_path.exists():
+        return None
+    
+    img = Image.open(base_path).convert("RGBA")
+    draw = ImageDraw.Draw(img)
+    
+    # 遍歷所有已錄製的日文音
+    # JP_VOWELS 裡面有 target_px, VOWEL_MAP 裡面有男女平均 ref
+    for jp_label, v_info in JP_VOWELS.items():
+        jp_key = v_info['key']
+        
+        # 檢查該音是否已錄製
+        if jp_key in jp_data:
+            f1_saved, f2_saved = jp_data[jp_key]
+            
+            # 1. 取得目標座標 (作為繪製起點)
+            tx, ty = v_info['target_px']
+            
+            # --- 關鍵：這裡我們直接使用目標座標繪製，不進行 F1/F2 位移計算 ---
+            # 因為這張圖是用來顯示「基準位置」，而非「對比位置」。
+            # 標註 F1/F2 數值即可。
+            
+            # 2. 繪製紅色實心點
+            st_x, st_y = tx, ty
+            draw.ellipse([st_x-12, st_y-12, st_x+12, st_y+12], fill=(255, 0, 0, 200))
+            
+            # 3. 準備標註文字
+            en_char = jp_label.split(" ")[1].strip("()") # 提取 (a) 中的 a
+            jp_char = jp_label.split(" ")[0] # 提取 あ
+            
+            # 格式化文字: あ/a\n(F1, F2)
+            label_text = f"{jp_char}/{en_char}\n({int(f1_saved)}, {int(f2_saved)})"
+            
+            # 4. 計算文字位置 (稍微偏移，避免擋到點)
+            # 根據點的位置動態調整文字方向 (選配，這裡先統一往右下偏移)
+            text_x = st_x + 15
+            text_y = st_y + 15
+            
+            # 5. 繪製文字 (加入白色外框，增加清晰度)
+            # Pillow 繪製文字較複雜，這裡使用簡單的黑字
+            # 如果需要更美觀，建議引入 ImageFont
+            draw.text((text_x, text_y), label_text, fill="black")
+            
+    return img
 # --- 4. Session State 管理 ---
 if 'stage' not in st.session_state:
     st.session_state.stage = "JP_CALIB"
@@ -220,15 +270,25 @@ if st.session_state.stage == "JP_CALIB":
 
     st.divider()
     
+    
     # 底部解鎖邏輯
     if len(st.session_state.jp_data) >= 5:
         st.success("🎉 太棒了！您已完成所有日文基準校正。")
+        
+        # --- 新增部分：顯示個人化母音地圖 ---
+        st.write("🗺️ **您的個人化母音基準地圖：**")
+        final_map_img = draw_final_jp_map(st.session_state.jp_data)
+        if final_map_img:
+            # 顯示全圖，讓學生確認五個點的位置
+            st.image(final_map_img, width=600, caption="紅點為您的日文母音基準位置與 F1/F2 數值")
+        
+        st.write("準備好接受英文挑戰了嗎？")
+        # 補回解鎖按鈕
         if st.button("🔓 點此進入英文挑戰階段 ➔", type="primary", use_container_width=True):
             st.session_state.stage = "EN_LEVEL"
             st.rerun()
     else:
         st.warning(f"還差 {5 - len(st.session_state.jp_data)} 個音即可解鎖英文挑戰。")
-    
 
 
 # --- 第二階段：英文母音練習 ---
