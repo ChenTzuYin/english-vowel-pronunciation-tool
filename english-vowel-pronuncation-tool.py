@@ -291,7 +291,7 @@ else:
         if not my_jp_ref:
             st.error("日本語の母音地図が見つからないです。前のステップに戻ってください。")
         else:
-            rec_en = mic_recorder(start_prompt="🎙️クリックして録音", start_stop=stop_prompt="⏹️録音を止める", ,key=f"rec_en_{en_v['v_key']}")
+            rec_en = mic_recorder(start_prompt="🎙️クリックして録音", stop_prompt="⏹️録音を止める", key=f"rec_en_{en_v['v_key']}")
             
             if rec_en:
                 f_en = get_formants(rec_en['bytes'])
