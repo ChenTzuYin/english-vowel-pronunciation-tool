@@ -313,13 +313,14 @@ else:
                         st.image(res_img, width=400, caption="赤い点が現在の舌の位置（推定）です。")
                     
                     st.divider()
+                   # --- 診断アドバイス (Diagnostic Advice) ---
+                    st.divider()
                     st.subheader("📊 アドバイス")
                     
-                    # システムが裏で判定した性別を表示
-                    gender_display = "男性" if g_key == "male" else "女性"
-                    st.caption(f"📢 現在の判定：{gender_display}の標準範囲を使用中")
+                    # 英語の標準平均値（ターゲット）を取得
+                    target_f1 = avg_ref['f1']
+                    target_f2 = avg_ref['f2']
                     
-                    # --- 診断アドバイス ---
                     # 1. F1（舌の高さ）の判定
                     if avg_ref['range_f1'][0] <= f1 <= avg_ref['range_f1'][1]:
                         st.success("✅ **舌の高さ：** バッチリです！理想的な範囲内です。")
@@ -332,12 +333,37 @@ else:
                     if avg_ref['range_f2'][0] <= f2 <= avg_ref['range_f2'][1]:
                         st.success("✅ **舌の前後：** バッチリです！理想的な位置です。")
                     elif f2 < avg_ref['range_f2'][0]:
-                        st.warning("❌ **舌の前後：** 舌が後ろに下がりすぎています。もう少し前に出してみましょう。")
+                        st.warning("❌ **舌の前後：** 舌が後ろに下がりすぎです。もう少し前に出してみましょう。")
                     else:
-                        st.warning("❌ **舌の前後：** 舌が前に出すぎています。少し後ろに下げてみましょう。")
-            st.metric("現在の第一フォルマント（舌の高さ）", f"{round(f1,1)} Hz", f"{round(f1_diff,1)} Hz", delta_color="inverse")
-            st.metric("現在の第二フォルマント（舌の前後）", f"{round(f2,1)} Hz", f"{round(f2_diff,1)} Hz")
+                        st.warning("❌ **舌の前後：** 舌が前に出すぎです。少し後ろに下げてみましょう。")
 
+                    # --- 3. 数値の表示 (目標値との差分を表示) ---
+                    # ターゲット（英語平均）との差を計算
+                    f1_diff = f1 - target_f1
+                    f2_diff = f2 - target_f2
+
+                    # 2列で表示
+                    m_col1, m_col2 = st.columns(2)
+
+                    # 第一フォルマント（舌の高さ）
+                    # delta_color="inverse" を使うと、数値が目標より大きい（舌が低い）時に赤、小さい時に赤など調整可能
+                    m_col1.metric(
+                        label="現在の F1 (舌の高さ)", 
+                        value=f"{round(f1, 1)} Hz", 
+                        delta=f"{round(f1_diff, 1)} Hz",
+                        delta_color="inverse"
+                    )
+                    
+                    # 第二フォルマント（舌の前後）
+                    m_col2.metric(
+                        label="現在の F2 (舌の前後)", 
+                        value=f"{round(f2, 1)} Hz", 
+                        delta=f"{round(f2_diff, 1)} Hz"
+                    )
+                    
+                    st.caption(f"💡 英語の標準平均値（F1:{target_f1}, F2:{target_f2}）との差を表示しています。")
+                    st.caption(f"🎯 目標範囲: F1({avg_ref['range_f1'][0]}-{avg_ref['range_f1'][1]}), F2({avg_ref['range_f2'][0]}-{avg_ref['range_f2'][1]})")
+        
         with res_col2:
             st.subheader("👓グラフ")
             res_img = draw_overlay_result(v_data, actual_v_data, f1, f2, g_key)
