@@ -102,6 +102,20 @@ def get_formants(audio_bytes):
     formants = sorted(angz * (22050 / (2 * np.pi)))
     return [f for f in formants if f > 250]
 
+def draw_target_only(v_data):
+    """在示範圖上僅畫出目標紅圈"""
+    base_path = Path("assets") / f"{v_data['prefix']}_{v_data['v_key']}_full.png"
+    if not base_path.exists():
+        return None
+    
+    img = Image.open(base_path).convert("RGBA")
+    draw = ImageDraw.Draw(img)
+    tx, ty = v_data["target_px"]
+    
+    # 畫目標圈 (紅圈)，並稍微加粗一點讓它更明顯
+    draw.ellipse([tx-10, ty-10, tx+10, ty+10], outline="red", width=4)
+    return img
+
 def draw_overlay(v_data, f1, f2, g_key, jp_base=None):
     """繪製舌位對比圖"""
     base_path = Path("assets") / f"{v_data['prefix']}_{v_data['v_key']}_full.png"
@@ -186,8 +200,15 @@ else:
     col_target, col_practice = st.columns(2)
     
     with col_target:
-        st.markdown(f"### 目標音：`/{en_v['v_key']}/`")
-        st.image(f"assets/{en_v['prefix']}_{en_v['v_key']}_full.png", width=350)
+        target_demo_img = draw_target_only(en_v)
+        if target_demo_img:
+            st.image(target_demo_img, width=350, caption="紅圈處為該母音的「舌面最高點」")
+        else:
+            # 防錯：如果圖檔有問題則顯示原始路徑
+            st.image(f"assets/{en_v['prefix']}_{en_v['v_key']}_full.png", width=350)
+        
+        st.write("👂 **聽聽示範音檔：**")
+        # ... (後續播放音檔的程式碼不變)
         
         st.write("👂 **聽聽示範音檔：**")
         word_choice = st.radio("選擇單字：", en_v["words"], horizontal=True, key="en_word")
