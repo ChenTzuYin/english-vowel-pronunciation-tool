@@ -299,7 +299,7 @@ else:
         word_choice = st.radio("", en_v["words"], horizontal=True, key="en_word")
         st.audio(f"assets/{en_v['prefix']}_{en_v['v_key']}_{word_choice}.mp3")
     with col_practice:
-        st.markdown("### 🎙️ 録音してください")
+        st.markdown("### 🎙️ 録音してください　(短くて空白が入らないように)")
         jp_key = en_v['jp_ref']
         my_jp_ref = st.session_state.jp_data.get(jp_key)
         avg_ref = en_v['ref'][g_key]
